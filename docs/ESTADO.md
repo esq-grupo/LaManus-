@@ -2,6 +2,8 @@
 
 Actualizado: 2026-10-13
 
+> Regra permanente: perguntas ao PO = 3 opções, recomendada primeiro (`docs/REGRAS-COMUNICACAO.md`).
+
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** Codex **APROVADO** (revisão 3). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-A.md`).
