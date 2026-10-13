@@ -84,7 +84,7 @@ erDiagram
 ### Financeiro (livro imutável)
 - **TipoEncargo** (nome, valorReferencia, periodicidade).
 - **Encargo** (estudante, tipoEncargo, periodoRef, valor ≥ 0, vencimento). Estado (PENDENTE/PARCIAL/PAGO/VENCIDO) **calculado**, não guardado.
-- **Pagamento** (estudante, pagoPor opcional, valor > 0, método, referenciaExterna, data, registadoPor, estado REGISTADO/CONFIRMADO/ESTORNADO). Valor nunca editável.
+- **Pagamento** (estudante, pagoPor opcional, valor > 0, método, referenciaExterna, data, registadoPor, estado REGISTADO/CONFIRMADO/ESTORNADO). Valor nunca editável. **Regra de estado:** `ESTORNADO` só quando Σ estornos APROVADOS = valor do pagamento. Estorno parcial mantém `CONFIRMADO`; o valor líquido (valor − Σ estornos aprovados) é calculado e mostrado no extracto e no recibo (nota "estorno parcial de X Kz"). Estorno PROPOSTO não altera o estado.
 - **AlocacaoPagamento** (pagamento, encargo, valor > 0). Regra: Σ alocações ≤ valor do pagamento (verificada em transacção + constraint trigger).
 - **Recibo** (série, número sequencial sem saltos, pagamento UNIQUE, pdfDocumento, emitidoPor). UNIQUE(série, número).
 - **Estorno** (pagamento, motivo, proposto por, autorizado por ≠ proponente, valor > 0, estado PROPOSTO/APROVADO/REJEITADO). Estorno total ou parcial.

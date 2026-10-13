@@ -26,3 +26,18 @@ Recomendações não bloqueantes: corrigir referência "§13"; `CLAUDE.md`/`AGEN
 | Rec. | Referência ao formato do relatório clarificada. Mermaid ainda por verificar visualmente no GitHub (não tenho navegador com acesso). | pedido de revisão |
 
 Pedida revisão n.º 2.
+
+
+---
+
+# Revisão n.º 2 — APROVADO COM RESSALVAS
+
+Achados novos (todos Médios): 6 capacidade "> 10×" sem base; 7 linhas Notificações/Relatórios fora da tabela Markdown; 8 estado do pagamento em estorno parcial.
+
+## Resposta do construtor (revisão 2)
+| # | Resposta | Onde |
+|---|---|---|
+| 6 | **Aceite.** Removido "> 10×"; capacidade marcada como hipótese sem validação, com teste de carga previsto antes da compra do servidor. | ADR-0001 |
+| 7 | **Aceite.** Linhas colocadas dentro da tabela; estudante/encarregado passam a 👁 apenas o seu extracto (portal). | security.md |
+| 8 | **Aceite.** `ESTORNADO` só com estorno total; parcial mantém `CONFIRMADO` e o valor líquido é calculado e mostrado. | data-model.md |
+| Rec. | P3 aguarda decisão do PO; Mermaid por verificar no GitHub. | — |

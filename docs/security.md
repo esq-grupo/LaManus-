@@ -31,12 +31,11 @@
 | Declarações | aprova | ✏️ emite | — | — | — | — | pede/👁 | pede/👁 | — |
 | Utilizadores e papéis | 👁 | — | — | — | — | — | — | — | ✏️ |
 | Auditoria | 👁 | — | — | — | — | 👁 | — | — | 👁 |
-
 | Notificações | ✏️ próprias + envio | ✏️ próprias + envio | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias |
-| Relatórios | ver abaixo | ver abaixo | ver abaixo | — | — | ver abaixo | — | — | — |
+| Relatórios | 👁 (herdado) | 👁 (herdado) | ✏️ financeiros (herdado) | — | — | 👁 (herdado) | 👁 só o seu extracto (portal) | 👁 só extracto dos educandos (portal) | — |
 
 Notificações: cada utilizador só lê as suas (destinatário = sessão); só Direcção e Secretaria podem enviar avisos manuais; as automáticas (pauta publicada, recibo, estado de pedido) são geradas pelo servidor.
-Relatórios: são vistas dos recursos existentes e **herdam o seu escopo** (ex.: dívidas por turma = Financeiro ✏️/Direcção 👁/Secretaria 👁; pautas e médias = Direcção/Qualidade 👁; extracto = o do estudante/encarregado no portal). Não existe relatório com permissão própria. Exportações (CSV/PDF) geram evento de auditoria.
+Relatórios: são vistas dos recursos existentes e **herdam o seu escopo** (ex.: dívidas por turma = Financeiro ✏️/Direcção 👁/Secretaria 👁; pautas e médias = Direcção/Qualidade 👁; extracto = vista do portal: estudante só o seu, encarregado só dos educandos verificados e activos). Não existe relatório com permissão própria. Exportações (CSV/PDF) geram evento de auditoria.
 
 Notas de desenho:
 - O Admin técnico gere contas mas **não vê dados académicos nem financeiros**; atribuir-se a si próprio papéis de negócio é bloqueado e auditado (separação de funções).

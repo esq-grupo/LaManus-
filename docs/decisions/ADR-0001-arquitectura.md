@@ -24,7 +24,7 @@ TypeScript strict · Next.js (App Router) · PostgreSQL 16 · Prisma · Zod · s
 ## Custos e limites operacionais (estimativa; valores desconhecidos marcados PENDENTE)
 **Pressupostos de carga:** 1.500 estudantes + ~3.000 encarregados + 50 internos; picos (notas publicadas, vencimentos de propinas) estimados em 100–200 utilizadores simultâneos; base de dados < 5 GB no 1.º ano; documentos/PDF < 20 GB/ano.
 
-**Capacidade mínima proposta para o servidor** (a validar na D2): 4 vCPU, 8 GB RAM, 200 GB SSD, Linux LTS; margem > 10× sobre a carga estimada.
+**Capacidade mínima proposta para o servidor** (a validar na D2): 4 vCPU, 8 GB RAM, 200 GB SSD, Linux LTS. **Hipótese inicial sem validação**: não há medições nem teste de carga; dimensionamento por experiência com aplicações web de dados relacionais deste porte. Validar na Entrega A/F com teste de carga (ex.: 200 utilizadores simultâneos nas rotas de login, pauta e extracto) **antes** de a escola contratar ou comprar o servidor.
 
 | Item de custo | Stack proposta | Alternativa gerida (nuvem) | Notas |
 |---|---|---|---|
