@@ -33,3 +33,25 @@ jobs:
       - run: npm run db:seed
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  # Exercita o caminho do README: PostgreSQL via Docker Compose + migração + seed.
+  compose:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://lamanus:lamanus_dev@localhost:5432/lamanus?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: cp .env.example .env
+      - run: docker compose up -d --wait db
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
+      - name: Confirmar dados do seed
+        run: docker compose exec -T db psql -U lamanus -d lamanus -tAc 'select count(*) from "Estudante"' | grep -qx 5
+      - if: always()
+        run: docker compose down -v
