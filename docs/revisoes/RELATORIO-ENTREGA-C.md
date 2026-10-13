@@ -19,3 +19,6 @@ A escola já pode registar anos lectivos, trimestres, classes, turmas, disciplin
 **F. Decisões provisórias** — ADR-0002 (NOVA/RENOVAÇÃO validadas, transferência só no mesmo ano, n.º de processo manual, BI mascarado…). **Pergunta ao PO (D9)** em aberto, feita com 3 opções.
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md` ao Codex. Paro aqui.
+
+### Adenda — CI no GitHub
+Execução [38471439069](https://github.com/esq-grupo/LaManus-/actions/runs/38471439069), commit `252a0f0`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; 96 testes de unidade/integração e 15 e2e).

@@ -32,4 +32,4 @@ Contas fictícias: `<papel>@exemplo.lamanu.test` (palavra-passe = `SEED_PASSWORD
 6. D9 (quem cria contas) em aberto — ADR-0002.
 
 ## Limitações
-Ver `docs/security.md` §8. O encarregado só vê nome e n.º de processo (notas e finanças nas Entregas D–F). CI: ver adenda no relatório após o push.
+Ver `docs/security.md` §8. O encarregado só vê nome e n.º de processo (notas e finanças nas Entregas D–F). CI verde no commit `252a0f0`: https://github.com/esq-grupo/LaManus-/actions/runs/38471439069
