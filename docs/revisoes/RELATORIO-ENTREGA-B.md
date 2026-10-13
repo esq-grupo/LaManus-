@@ -24,3 +24,8 @@ Pergunta de negócio (3 opções, recomendada primeiro) fica para depois do vere
 
 ### Adenda — CI no GitHub
 Execução [38467073949](https://github.com/esq-grupo/LaManus-/actions/runs/38467073949), commit `16a9dbb`, tentativa 1: jobs `verificar` (lint, formatação, typecheck, migração, seed, 53 testes, E2E) e `compose` **verdes**.
+
+### Adenda — revisão n.º 2 (2026-10-13)
+Correcções ao REPROVADO da revisão 1: reserva atómica das tentativas de login (reproduzido antes: rajada de 30 → 30 verificações; agora ≤ 5) e recuperação/convite à prova de falhas de email. Resposta ponto a ponto em `VEREDICTO-ENTREGA-B.md`.
+- Local: 58 testes de unidade/integração (29 + 29) e 8 e2e a passar; teste de rajada estável em 15/15 execuções; lint, formatação, typecheck e build sem erros.
+- CI: execução [38468737152](https://github.com/esq-grupo/LaManus-/actions/runs/38468737152), commit `cd2dafb`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`).
