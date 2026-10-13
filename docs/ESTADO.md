@@ -4,7 +4,7 @@ Actualizado: 2026-10-13
 
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
-- **Entrega actual:** A — Fundação técnica. **Tarefas implementadas; revisão 1 REPROVADA (Compose não verificado) → corrigido com job `compose` no CI, verde; a aguardar revisão n.º 2 do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-A.md`).
+- **Entrega actual:** A — Fundação técnica. **Tarefas implementadas; revisão 1 REPROVADA (Compose não verificado) → corrigido com job `compose` no CI, verde; revisão 2 REPROVADA por CI visto na tentativa falhada (ECONNRESET); `npm ci` agora com repetição e CI verde no commit `8cd9f7a`; a aguardar revisão n.º 3 do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-A.md`).
 - **Depois:** B — Identidade e segurança (só após Codex APROVADO + OK PO na A).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
