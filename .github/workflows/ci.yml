@@ -23,7 +23,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: npm ci (até 3 tentativas: o download dos binários do Prisma pode falhar por rede)
+      # O download dos binários do Prisma pode falhar por rede (ECONNRESET).
+      - name: npm ci com até 3 tentativas
         run: |
           for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
       - run: npx prisma generate
@@ -49,7 +50,7 @@ jobs:
           cache: npm
       - run: cp .env.example .env
       - run: docker compose up -d --wait db
-      - name: npm ci (até 3 tentativas: o download dos binários do Prisma pode falhar por rede)
+      - name: npm ci com até 3 tentativas
         run: |
           for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
       - run: npm run db:generate
