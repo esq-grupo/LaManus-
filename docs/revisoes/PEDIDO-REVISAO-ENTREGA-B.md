@@ -31,4 +31,4 @@ Contas de desenvolvimento (fictícias): `<papel>@exemplo.lamanu.test`, p.ex. `do
 6. Limitações conhecidas em `docs/security.md` §7 (CSP sem script-src, X-Forwarded-For, timing da recuperação, sem MFA, sem limpeza agendada).
 
 ## Limitações
-Escopos de Encarregado e Docente são "negar tudo" até às Entregas C/D (entidades ainda não existem). Sem SMTP real (D11). O CI deve estar verde (jobs `verificar` e `compose`) no commit revisto.
+Escopos de Encarregado e Docente são "negar tudo" até às Entregas C/D (entidades ainda não existem). Sem SMTP real (D11). CI verde no commit `16a9dbb` (execução 38467073949, tentativa 1): https://github.com/esq-grupo/LaManus-/actions/runs/38467073949

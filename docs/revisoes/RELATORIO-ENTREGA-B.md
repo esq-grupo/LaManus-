@@ -21,3 +21,6 @@ Decidi (técnico, sem custo para a escola): argon2id; sessões 30 min de inactiv
 Pergunta de negócio (3 opções, recomendada primeiro) fica para depois do veredicto: valores de bloqueio e duração de sessão (D3) com a escola.
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-B.md` ao Codex. Paro aqui.
+
+### Adenda — CI no GitHub
+Execução [38467073949](https://github.com/esq-grupo/LaManus-/actions/runs/38467073949), commit `16a9dbb`, tentativa 1: jobs `verificar` (lint, formatação, typecheck, migração, seed, 53 testes, E2E) e `compose` **verdes**.
