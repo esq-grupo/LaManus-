@@ -43,14 +43,34 @@ export async function enviarLinkDeRedefinicao(
   });
 }
 
-/** Resposta SEMPRE igual, exista ou não a conta (não revela quem tem conta). */
+/**
+ * Resposta SEMPRE igual, exista ou não a conta e funcione ou não o envio do email: esta função nunca lança.
+ * Uma falha (SMTP em baixo, BD) fica auditada sem detalhes técnicos (podem conter segredos) e o utilizador
+ * recebe a mesma mensagem — assim a resposta não revela se a conta existe.
+ */
 export async function pedirRecuperacao(emailBruto: string, ip?: string | null): Promise<void> {
-  const user = await db.user.findUnique({ where: { email: emailBruto.trim().toLowerCase() } });
-  if (!user || user.estado === "DESACTIVADO") {
-    await registarAuditoria({ acao: "RECUPERACAO_PEDIDA_DESCONHECIDA", entidade: "User", ip });
-    return;
+  let userId: string | undefined;
+  try {
+    const user = await db.user.findUnique({ where: { email: emailBruto.trim().toLowerCase() } });
+    if (!user || user.estado === "DESACTIVADO") {
+      await registarAuditoria({ acao: "RECUPERACAO_PEDIDA_DESCONHECIDA", entidade: "User", ip });
+      return;
+    }
+    userId = user.id;
+    await enviarLinkDeRedefinicao(user.id, "RECUPERACAO", null, ip);
+  } catch {
+    try {
+      await registarAuditoria({
+        actorId: userId ?? null,
+        acao: "RECUPERACAO_EMAIL_FALHOU",
+        entidade: "User",
+        entidadeId: userId ?? null,
+        ip,
+      });
+    } catch {
+      // Nem a auditoria funcionou: nada mais a fazer sem alterar a resposta.
+    }
   }
-  await enviarLinkDeRedefinicao(user.id, "RECUPERACAO", null, ip);
 }
 
 export type ResultadoRedefinicao = { ok: true } | { ok: false; erros: string[] };

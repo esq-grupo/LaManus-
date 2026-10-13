@@ -7,7 +7,7 @@ Actualizado: 2026-10-13
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
-- **Entrega actual:** B — Identidade e segurança. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-B.md`).
+- **Entrega actual:** B — Identidade e segurança. Revisão 1 REPROVADA (bloqueio não atómico; falha de email na recuperação) → corrigido; **a aguardar revisão n.º 2 do Codex**.
 - **Depois:** C — Estrutura escolar (só após Codex APROVADO + OK PO na B).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
@@ -18,7 +18,7 @@ Actualizado: 2026-10-13
 - [x] Protecção por área (DAL + proxy optimista)
 - [x] Gestão de utilizadores (Admin técnico)
 - [x] Auditoria de login, papéis e acessos negados
-- [x] Testes: 29 unitários, 24 integração, 8 e2e
+- [x] Testes: 29 unitários, 29 integração, 8 e2e
 
 ## Tarefas da Entrega A (fechada)
 - [x] Scaffold Next.js 16 + TypeScript strict

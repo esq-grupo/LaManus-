@@ -24,6 +24,27 @@ function exigir(actor: Principal, permissao: "utilizadores:gerir" | "utilizadore
   if (!can(actor, permissao)) throw new ErroAutorizacao();
 }
 
+/** Falha de envio → mensagem clara para o administrador (sem detalhes técnicos) e evento de auditoria. */
+async function enviarConvite(
+  userId: string,
+  actorId: string,
+  ip: string | null | undefined,
+  mensagem: string,
+) {
+  try {
+    await enviarLinkDeRedefinicao(userId, "CONVITE", actorId, ip);
+  } catch {
+    await registarAuditoria({
+      actorId,
+      acao: "CONVITE_EMAIL_FALHOU",
+      entidade: "User",
+      entidadeId: userId,
+      ip,
+    });
+    throw new ErroValidacao([`${mensagem} Use «Reenviar link» quando o email estiver disponível.`]);
+  }
+}
+
 export const criarUtilizadorSchema = z.object({
   nome: z.string().trim().min(3, "Indique o nome.").max(120),
   email: z.string().trim().toLowerCase().email("Email inválido.").max(200),
@@ -76,7 +97,12 @@ export async function criarUtilizador(actor: Principal, entrada: unknown, ip?: s
     depois: { nome, email, papeis },
     ip,
   });
-  await enviarLinkDeRedefinicao(user.id, "CONVITE", actor.id, ip);
+  await enviarConvite(
+    user.id,
+    actor.id,
+    ip,
+    "Utilizador criado, mas não foi possível enviar o email.",
+  );
   return user.id;
 }
 
@@ -154,5 +180,5 @@ export async function revogarSessoesDe(actor: Principal, alvoId: string, ip?: st
 
 export async function reenviarConvite(actor: Principal, alvoId: string, ip?: string | null) {
   exigir(actor, "utilizadores:gerir");
-  await enviarLinkDeRedefinicao(alvoId, "CONVITE", actor.id, ip);
+  await enviarConvite(alvoId, actor.id, ip, "Não foi possível enviar o email.");
 }

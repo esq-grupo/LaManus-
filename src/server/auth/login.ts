@@ -70,6 +70,39 @@ export async function iniciarSessao(
     return { ok: false, motivo: "BLOQUEADO" };
   }
 
+  // Bloqueio expirado: o contador recomeça (idempotente, seguro com pedidos simultâneos).
+  if (user.bloqueadoAte) {
+    await db.user.updateMany({
+      where: { id: user.id, bloqueadoAte: { lte: agora } },
+      data: { tentativasFalhadas: 0, bloqueadoAte: null },
+    });
+  }
+
+  // RESERVA ATÓMICA da tentativa, ANTES de verificar a palavra-passe.
+  // `increment` é um único UPDATE ... SET n = n + 1 na BD: com pedidos simultâneos cada um recebe um número
+  // distinto, por isso no máximo `maxFalhasConta` palavras-passe são verificadas por janela, mesmo numa rajada.
+  const { tentativasFalhadas: reservada } = await db.user.update({
+    where: { id: user.id },
+    data: { tentativasFalhadas: { increment: 1 } },
+    select: { tentativasFalhadas: true },
+  });
+  const fimDoBloqueio = () => new Date(Date.now() + AUTH.bloqueioContaMs);
+
+  if (reservada > AUTH.maxFalhasConta) {
+    await db.user.updateMany({
+      where: { id: user.id, bloqueadoAte: null },
+      data: { bloqueadoAte: fimDoBloqueio() },
+    });
+    await registarAuditoria({
+      actorId: user.id,
+      acao: "LOGIN_RECUSADO_BLOQUEADO",
+      entidade: "User",
+      entidadeId: user.id,
+      ip: meta.ip,
+    });
+    return { ok: false, motivo: "BLOQUEADO" };
+  }
+
   const correcta = await verificarPassword(user.passwordHash, password);
   const activo = user.estado === "ACTIVO";
 
@@ -78,21 +111,16 @@ export async function iniciarSessao(
       data: { identificador: email, ip: meta.ip ?? null, sucesso: false },
     });
     if (!correcta) {
-      const falhas = user.tentativasFalhadas + 1;
-      const bloquear = falhas >= AUTH.maxFalhasConta;
-      await db.user.update({
-        where: { id: user.id },
-        data: {
-          tentativasFalhadas: bloquear ? 0 : falhas,
-          bloqueadoAte: bloquear ? new Date(agora.getTime() + AUTH.bloqueioContaMs) : null,
-        },
-      });
+      const bloquear = reservada >= AUTH.maxFalhasConta;
+      if (bloquear) {
+        await db.user.update({ where: { id: user.id }, data: { bloqueadoAte: fimDoBloqueio() } });
+      }
       await registarAuditoria({
         actorId: user.id,
         acao: "LOGIN_FALHADO",
         entidade: "User",
         entidadeId: user.id,
-        depois: { falhas },
+        depois: { falhas: reservada },
         ip: meta.ip,
       });
       if (bloquear) {

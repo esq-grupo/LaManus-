@@ -62,6 +62,44 @@ describe("login", () => {
     expect(ev.length).toBe(1);
   });
 
+  it("tentativas SIMULTÂNEAS não contornam o limite: no máximo 5 palavras-passe são verificadas", async () => {
+    const u = await novo(["DOCENTE"]);
+    const rajada = await Promise.all(
+      Array.from({ length: 30 }, () => iniciarSessao(u.email, "errada-errada-1")),
+    );
+    expect(rajada.every((r) => !r.ok)).toBe(true);
+    const verificadas = await db.eventoAuditoria.count({
+      where: { actorId: u.id, acao: "LOGIN_FALHADO" },
+    });
+    expect(verificadas).toBeLessThanOrEqual(AUTH.maxFalhasConta);
+    expect(await iniciarSessao(u.email, PASSWORD_TESTE)).toEqual({
+      ok: false,
+      motivo: "BLOQUEADO",
+    });
+  });
+
+  it("logins legítimos repetidos não bloqueiam a conta (o contador zera em cada sucesso)", async () => {
+    const u = await novo(["DOCENTE"]);
+    for (let i = 0; i < AUTH.maxFalhasConta + 3; i++) {
+      expect((await iniciarSessao(u.email, "errada-errada-1")).ok).toBe(false);
+      expect((await iniciarSessao(u.email, PASSWORD_TESTE)).ok).toBe(true);
+    }
+  });
+
+  it("depois de o bloqueio expirar, o contador recomeça (uma falha não volta a bloquear)", async () => {
+    const u = await novo(["DOCENTE"]);
+    for (let i = 0; i < AUTH.maxFalhasConta; i++) await iniciarSessao(u.email, "errada-errada-1");
+    await db.user.update({
+      where: { id: u.id },
+      data: { bloqueadoAte: new Date(Date.now() - 1000) },
+    });
+    expect(await iniciarSessao(u.email, "errada-errada-1")).toEqual({
+      ok: false,
+      motivo: "CREDENCIAIS",
+    });
+    expect((await iniciarSessao(u.email, PASSWORD_TESTE)).ok).toBe(true);
+  });
+
   it("conta desactivada ou bloqueada pela administração não entra", async () => {
     const d = await novo(["DOCENTE"], { estado: "DESACTIVADO" });
     const b = await novo(["DOCENTE"], { estado: "BLOQUEADO" });
@@ -163,6 +201,26 @@ describe("recuperação de conta", () => {
     expect(await validarSessao(antiga.token)).toBeNull(); // sessões antigas revogadas
     expect((await iniciarSessao(u.email, "Nova-Palavra-Segura-77")).ok).toBe(true);
     expect((await iniciarSessao(u.email, PASSWORD_TESTE)).ok).toBe(false);
+  });
+
+  it("falha no envio do email NÃO altera a resposta da recuperação (nem lança erro) e fica auditada", async () => {
+    const u = await novo(["DOCENTE"]);
+    definirMailer({
+      enviar: async () => {
+        throw new Error("SMTP em baixo: smtp://segredo@servidor");
+      },
+    });
+    try {
+      await expect(pedirRecuperacao(u.email)).resolves.toBeUndefined();
+      await expect(pedirRecuperacao("ninguem@teste.lamanu.test")).resolves.toBeUndefined();
+    } finally {
+      definirMailer({ enviar: async (e) => void emails.push(e) });
+    }
+    const ev = await db.eventoAuditoria.findFirst({
+      where: { actorId: u.id, acao: "RECUPERACAO_EMAIL_FALHOU" },
+    });
+    expect(ev).not.toBeNull();
+    expect(JSON.stringify(ev)).not.toContain("segredo");
   });
 
   it("não revela se o email existe (nenhum email enviado para desconhecidos)", async () => {

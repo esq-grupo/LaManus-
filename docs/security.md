@@ -70,8 +70,8 @@ Notas de desenho:
 | Sessões em BD | Token 256 bits, só o hash guardado; inactividade 30 min, prazo absoluto 8 h; validada na BD a cada pedido; papéis lidos a cada pedido (alteração imediata) | `src/server/auth/sessao.ts`, `config.ts` |
 | Cookie | `httpOnly`, `sameSite=lax`, `secure` + prefixo `__Host-` em produção | `config.ts` |
 | Passwords | argon2id (m=19 MiB, t=2, p=1); política ≥10 caracteres, não comuns, sem email/nome; resposta igual para utilizador inexistente (tempo igualado) | `password.ts` |
-| Bloqueio | 5 falhas → conta bloqueada 15 min; 20 falhas/15 min por IP → recusa | `login.ts` |
-| Recuperação | Link de uso único, 30 min, hash em BD; resposta sempre igual; revoga todas as sessões; não desbloqueia contas bloqueadas pela administração | `recuperacao.ts` |
+| Bloqueio | **Reserva atómica** de cada tentativa antes de verificar a palavra-passe (`UPDATE … SET n = n + 1`): no máximo 5 verificações por janela, mesmo com pedidos simultâneos. 5.ª falha → conta bloqueada 15 min; o contador zera em cada sucesso e quando o bloqueio expira. Limite por IP (20 falhas/15 min) | `login.ts` |
+| Recuperação | Link de uso único, 30 min, hash em BD; resposta sempre igual **mesmo que o envio do email ou a BD falhem** (a função nunca lança; a falha fica auditada sem detalhes técnicos); revoga todas as sessões; não desbloqueia contas bloqueadas pela administração | `recuperacao.ts` |
 | Authz | `can()`, `podeAceder()`, `podeAlterarPapeis()`, `escopoEstudantes()`; negar por omissão | `src/server/authz/` |
 | Áreas | `exigirArea()` / `exigirPermissao()` nos layouts e Server Actions (verificação autoritativa); `proxy.ts` só faz pré-filtro por existência do cookie | `dal.ts`, `proxy.ts` |
 | Gestão de utilizadores | Só Admin técnico; o administrador nunca define nem vê palavras-passe (convite por link); ninguém altera os próprios papéis/estado | `modules/utilizadores.ts` |
@@ -98,4 +98,6 @@ Notas de desenho:
 5. **Acesso negado** redirecciona para `/acesso-negado` (HTTP 200 final); as respostas 403 de rotas API/Route Handlers chegam quando existirem.
 6. **MFA** opcional não implementado.
 7. **Limpeza** periódica de `Session`, `PasswordReset` e `TentativaLogin` (tarefa agendada) ainda não existe.
-8. As palavras-passe `SEED_PASSWORD` do `.env.example` e do CI são fictícias, só para desenvolvimento/CI; o seed recusa-se a correr em produção.
+8. **Bloqueio como vector de negação de serviço**: quem conhece um email pode bloquear essa conta durante 15 min com 5 tentativas (inerente a qualquer bloqueio por conta). Mitigação: bloqueio curto, recuperação de conta disponível; avaliar CAPTCHA/atraso progressivo se for abusado.
+9. **Limite por IP é de melhor esforço**: a contagem é feita antes de agir (sem reserva atómica), por isso uma rajada pode ultrapassar ligeiramente o limiar; o limite por conta é rígido.
+10. As palavras-passe `SEED_PASSWORD` do `.env.example` e do CI são fictícias, só para desenvolvimento/CI; o seed recusa-se a correr em produção.

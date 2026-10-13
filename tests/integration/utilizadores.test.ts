@@ -101,6 +101,31 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
     expect((await iniciarSessao(email, PASSWORD_TESTE)).ok).toBe(false);
   });
 
+  it("se o email do convite falhar, o admin recebe mensagem clara, a conta existe e a falha fica auditada", async () => {
+    const admin = await principal(["ADMIN_TECNICO"]);
+    const email = `falha-${Date.now()}@teste.lamanu.test`;
+    definirMailer({
+      enviar: async () => {
+        throw new Error("SMTP em baixo: smtp://segredo@servidor");
+      },
+    });
+    try {
+      await expect(
+        criarUtilizador(admin, { nome: "Pessoa Sem Email", email, papeis: ["SECRETARIA"] }),
+      ).rejects.toThrow(/Reenviar link/);
+    } finally {
+      definirMailer({ enviar: async () => undefined });
+    }
+    const criado = await db.user.findUnique({ where: { email } });
+    expect(criado).not.toBeNull();
+    if (criado) criados.push(criado.id);
+    const ev = await db.eventoAuditoria.findFirst({
+      where: { acao: "CONVITE_EMAIL_FALHOU", entidadeId: criado?.id },
+    });
+    expect(ev).not.toBeNull();
+    expect(JSON.stringify(ev)).not.toContain("segredo");
+  });
+
   it("alterar papéis audita antes/depois e tem efeito imediato", async () => {
     const admin = await principal(["ADMIN_TECNICO"]);
     const alvo = await principal(["DOCENTE"]);
