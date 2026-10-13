@@ -6,11 +6,21 @@ Actualizado: 2026-10-13
 
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
-- **Entrega A:** Codex **APROVADO** (revisão 3). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-A.md`).
-- **Depois:** B — Identidade e segurança (só após o OK do PO à Entrega A).
+- **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
+- **Entrega actual:** B — Identidade e segurança. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-B.md`).
+- **Depois:** C — Estrutura escolar (só após Codex APROVADO + OK PO na B).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
-## Tarefas da Entrega A
+## Tarefas da Entrega B
+- [x] Modelo User/Role/Permission/Session/PasswordReset/EventoAuditoria + migração (trigger imutável)
+- [x] Login/logout, bloqueio (conta e IP), política de passwords, recuperação
+- [x] Camada `authz` (can, áreas, escopo, separação de funções)
+- [x] Protecção por área (DAL + proxy optimista)
+- [x] Gestão de utilizadores (Admin técnico)
+- [x] Auditoria de login, papéis e acessos negados
+- [x] Testes: 29 unitários, 24 integração, 8 e2e
+
+## Tarefas da Entrega A (fechada)
 - [x] Scaffold Next.js 16 + TypeScript strict
 - [x] Tailwind CSS 4
 - [x] Prisma 7 + PostgreSQL 16 (`docker-compose.yml`), migração inicial
@@ -29,3 +39,5 @@ Actualizado: 2026-10-13
 - Docker não disponível no ambiente do construtor; o `docker compose` é validado pelo job `compose` do CI.
 - Avisos das Actions: Node 20 deprecated em `actions/checkout@v4`/`setup-node@v4` e `eslint@9` sem suporte futuro — tratar antes de Setembro/2027 (baixo).
 - Next.js gera um `AGENTS.md` ao instalar; foi removido e ignorado para não colidir com o manual do Codex.
+- Limitações da Entrega B: ver `docs/security.md` §7.
+- Limpeza agendada de sessões/tentativas/resets — por implementar.

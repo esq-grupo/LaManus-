@@ -17,6 +17,7 @@ jobs:
           --health-cmd "pg_isready -U lamanus" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://lamanus:lamanus_ci@localhost:5432/lamanus?schema=public
+      SEED_PASSWORD: Ci-Apenas-Teste-2026
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,9 +32,9 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
-      - run: npm test
       - run: npx prisma migrate deploy
       - run: npm run db:seed
+      - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 

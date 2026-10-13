@@ -62,3 +62,40 @@ Notas de desenho:
 
 ## 6. Auditoria
 `EventoAuditoria`: actor, acção, entidade, entidadeId, antes/depois (JSON, sem passwords/tokens), IP, data. Trigger impede UPDATE/DELETE. Eventos obrigatórios: login ok/falhado, bloqueio, mudança de papel, acesso negado, edição pós-publicação de nota, estorno, emissão de documento, transferência de turma, importação.
+
+## 7. Estado de implementação — Entrega B (2026-10-13)
+
+| Tema | Implementado | Onde |
+|---|---|---|
+| Sessões em BD | Token 256 bits, só o hash guardado; inactividade 30 min, prazo absoluto 8 h; validada na BD a cada pedido; papéis lidos a cada pedido (alteração imediata) | `src/server/auth/sessao.ts`, `config.ts` |
+| Cookie | `httpOnly`, `sameSite=lax`, `secure` + prefixo `__Host-` em produção | `config.ts` |
+| Passwords | argon2id (m=19 MiB, t=2, p=1); política ≥10 caracteres, não comuns, sem email/nome; resposta igual para utilizador inexistente (tempo igualado) | `password.ts` |
+| Bloqueio | 5 falhas → conta bloqueada 15 min; 20 falhas/15 min por IP → recusa | `login.ts` |
+| Recuperação | Link de uso único, 30 min, hash em BD; resposta sempre igual; revoga todas as sessões; não desbloqueia contas bloqueadas pela administração | `recuperacao.ts` |
+| Authz | `can()`, `podeAceder()`, `podeAlterarPapeis()`, `escopoEstudantes()`; negar por omissão | `src/server/authz/` |
+| Áreas | `exigirArea()` / `exigirPermissao()` nos layouts e Server Actions (verificação autoritativa); `proxy.ts` só faz pré-filtro por existência do cookie | `dal.ts`, `proxy.ts` |
+| Gestão de utilizadores | Só Admin técnico; o administrador nunca define nem vê palavras-passe (convite por link); ninguém altera os próprios papéis/estado | `modules/utilizadores.ts` |
+| Auditoria | Login ok/falhado, bloqueios, logout, criação/desactivação, papéis (antes/depois), sessões revogadas, redefinição, acessos negados; chaves sensíveis omitidas; UPDATE/DELETE/TRUNCATE bloqueados por trigger | `audit/`, migração |
+| Cabeçalhos | nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP mínima (`frame-ancestors`, `form-action`…), HSTS em produção | `next.config.ts` |
+
+### Regras S1–S8 (secção 4): cobertura
+| # | Regra | Estado |
+|---|---|---|
+| S1 | Estudante só vê o próprio | Escopo `{userId}` testado; dados académicos chegam na Entrega C |
+| S2 | Encarregado só educandos verificados | Escopo vazio (nega tudo) até à Entrega C |
+| S3 | Docente só as suas turmas | Escopo vazio até à Entrega C/D |
+| S4 | Notas não publicadas | Entrega D |
+| S5 | Download protegido | Entrega G |
+| S6 | Pagamentos imutáveis | Entrega E |
+| S7 | Sessão revogada deixa de funcionar de imediato | **Testado** (integração) |
+| S8 | Admin técnico sem acesso a notas/finanças | **Testado** (matriz authz) |
+
+### Limitações conhecidas (a tratar)
+1. **CSP sem `script-src`**: o Next.js usa scripts inline; uma CSP com *nonce* fica para o endurecimento da Entrega H.
+2. **IP do cliente** vem de `X-Forwarded-For`: só é fiável atrás do proxy reverso da escola (Caddy/Nginx) a definir o cabeçalho; sem proxy pode ser forjado e enfraquece o limite por IP (o bloqueio por conta continua a funcionar).
+3. **Recuperação de conta**: a resposta é igual, mas o tempo de resposta pode diferir (envio de email só para contas existentes). Mitigar com fila assíncrona quando houver SMTP.
+4. **Email**: em desenvolvimento grava ficheiros em `armazenamento/dev-emails/`; em produção falha de forma explícita até haver SMTP (D11).
+5. **Acesso negado** redirecciona para `/acesso-negado` (HTTP 200 final); as respostas 403 de rotas API/Route Handlers chegam quando existirem.
+6. **MFA** opcional não implementado.
+7. **Limpeza** periódica de `Session`, `PasswordReset` e `TentativaLogin` (tarefa agendada) ainda não existe.
+8. As palavras-passe `SEED_PASSWORD` do `.env.example` e do CI são fictícias, só para desenvolvimento/CI; o seed recusa-se a correr em produção.

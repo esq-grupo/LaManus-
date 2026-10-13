@@ -55,9 +55,127 @@ model Estudante {
   numeroProcesso String    @unique
   nome           String
   dataNascimento DateTime  @db.Date
+  userId         String?   @unique @db.Uuid
+  user           User?     @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@index([nome])
+}
+
+// ───────── Entrega B: identidade, acesso e auditoria ─────────
+
+enum EstadoUtilizador {
+  ACTIVO
+  BLOQUEADO
+  DESACTIVADO
+}
+
+model User {
+  id                 String           @id @default(uuid()) @db.Uuid
+  email              String           @unique
+  nome               String
+  passwordHash       String
+  estado             EstadoUtilizador @default(ACTIVO)
+  tentativasFalhadas Int              @default(0)
+  bloqueadoAte       DateTime?
+  ultimoLogin        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  papeis             UserRole[]
+  sessoes            Session[]
+  resets             PasswordReset[]
+  estudante          Estudante?
+}
+
+model Role {
+  id         String           @id @default(uuid()) @db.Uuid
+  codigo     String           @unique
+  nome       String
+  users      UserRole[]
+  permissoes RolePermission[]
+}
+
+model Permission {
+  id        String           @id @default(uuid()) @db.Uuid
+  codigo    String           @unique
+  descricao String
+  papeis    RolePermission[]
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  tokenHash        String    @unique
+  expiraEm         DateTime
+  ultimaActividade DateTime  @default(now())
+  ip               String?
+  userAgent        String?
+  revogadaEm       DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiraEm  DateTime
+  usadoEm   DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Tentativas de login (por identificador e por IP) para bloqueio e análise.
+model TentativaLogin {
+  id            String   @id @default(uuid()) @db.Uuid
+  identificador String
+  ip            String?
+  sucesso       Boolean
+  em            DateTime @default(now())
+
+  @@index([ip, em])
+  @@index([identificador, em])
+}
+
+// Só inserção: UPDATE/DELETE bloqueados por trigger (ver migração).
+model EventoAuditoria {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  acao       String
+  entidade   String
+  entidadeId String?
+  antes      Json?
+  depois     Json?
+  ip         String?
+  em         DateTime @default(now())
+
+  @@index([actorId])
+  @@index([acao, em])
+  @@index([entidade, entidadeId])
 }

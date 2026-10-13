@@ -9,5 +9,12 @@ function criarCliente(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 }
 
-export const db = globalForPrisma.prisma ?? criarCliente();
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+function obter(): PrismaClient {
+  globalForPrisma.prisma ??= criarCliente();
+  return globalForPrisma.prisma;
+}
+
+/** Cliente preguiçoso: só liga à BD no primeiro uso (permite importar módulos sem BD, p.ex. em testes unitários). */
+export const db = new Proxy({} as PrismaClient, {
+  get: (_alvo, propriedade) => Reflect.get(obter(), propriedade),
+});
