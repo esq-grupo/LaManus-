@@ -1,10 +1,23 @@
+import { exigirArea } from "@/server/auth/dal";
+import { meusEducandos } from "@/server/modules/pessoas";
+
 export const metadata = { title: "Portal do Estudante — Lá Manu" };
 
-export default function Pagina() {
+export default async function Pagina() {
+  const user = await exigirArea("estudante");
+  const [eu] = await meusEducandos(user);
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="text-xl font-semibold">Portal do Estudante</h1>
-      <p className="text-slate-600">Em construção. Sem acesso protegido ainda (Entrega B).</p>
+    <main className="mx-auto max-w-2xl space-y-3 p-6">
+      <h1 className="text-xl font-semibold">O meu perfil</h1>
+      {eu ? (
+        <p data-testid="perfil">
+          {eu.nome} <span className="text-sm text-slate-600">· Processo {eu.numeroProcesso}</span>
+        </p>
+      ) : (
+        <p className="text-slate-600">
+          A sua conta ainda não está associada a um estudante. Fale com a secretaria.
+        </p>
+      )}
     </main>
   );
 }

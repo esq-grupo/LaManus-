@@ -48,11 +48,54 @@ async function main() {
     update: {},
     create: { nome: "7.ª classe", ordem: 7 },
   });
-  await db.turma.upsert({
-    where: { anoLectivoId_classeId_nome: { anoLectivoId: ano.id, classeId: classe.id, nome: "A" } },
-    update: {},
-    create: { nome: "A", turno: "Manhã", classeId: classe.id, anoLectivoId: ano.id },
+  const turmas = [];
+  for (const nome of ["A", "B"]) {
+    turmas.push(
+      await db.turma.upsert({
+        where: { anoLectivoId_classeId_nome: { anoLectivoId: ano.id, classeId: classe.id, nome } },
+        update: {},
+        create: { nome, turno: "Manhã", classeId: classe.id, anoLectivoId: ano.id },
+      }),
+    );
+  }
+  const [turmaA, turmaB] = turmas as [(typeof turmas)[number], (typeof turmas)[number]];
+  const trimestres = [
+    ["1.º trimestre", "2026-09-01", "2026-12-15"],
+    ["2.º trimestre", "2027-01-10", "2027-04-10"],
+    ["3.º trimestre", "2027-04-20", "2027-07-15"],
+  ] as const;
+  for (const [i, [nome, inicio, fim]] of trimestres.entries()) {
+    await db.periodo.upsert({
+      where: { anoLectivoId_ordem: { anoLectivoId: ano.id, ordem: i + 1 } },
+      update: {},
+      create: {
+        anoLectivoId: ano.id,
+        ordem: i + 1,
+        nome,
+        inicio: new Date(inicio),
+        fim: new Date(fim),
+      },
+    });
+  }
+  const disciplinas = [];
+  for (const nome of ["Matemática", "Língua Portuguesa"]) {
+    disciplinas.push(await db.disciplina.upsert({ where: { nome }, update: {}, create: { nome } }));
+  }
+  const contaDocente = await db.user.findUniqueOrThrow({
+    where: { email: "docente@exemplo.lamanu.test" },
   });
+  const docente =
+    (await db.funcionario.findUnique({ where: { userId: contaDocente.id } })) ??
+    (await db.funcionario.create({
+      data: { nome: "Docente Fictício", cargo: "Docente", userId: contaDocente.id },
+    }));
+  for (const d of disciplinas) {
+    await db.turmaDisciplina.upsert({
+      where: { turmaId_disciplinaId: { turmaId: turmaA.id, disciplinaId: d.id } },
+      update: {},
+      create: { turmaId: turmaA.id, disciplinaId: d.id, docenteId: docente.id },
+    });
+  }
   for (let i = 1; i <= 5; i++) {
     const numeroProcesso = `TESTE-${String(i).padStart(4, "0")}`;
     await db.estudante.upsert({
@@ -72,6 +115,49 @@ async function main() {
     where: { numeroProcesso: "TESTE-0001" },
     data: { userId: contaEstudante.id },
   });
+
+  // Matrículas e encarregado fictícios: 1 ligação verificada, 1 por verificar, 1 verificada mas com autorização revogada.
+  const estudante = (n: number) =>
+    db.estudante.findUniqueOrThrow({ where: { numeroProcesso: `TESTE-000${n}` } });
+  for (const [n, turma] of [
+    [1, turmaA],
+    [2, turmaB],
+  ] as const) {
+    const e = await estudante(n);
+    const jaTem = await db.matricula.findFirst({
+      where: { estudanteId: e.id, estado: "ACTIVA", anoLectivoId: ano.id },
+    });
+    if (!jaTem)
+      await db.matricula.create({
+        data: { estudanteId: e.id, turmaId: turma.id, anoLectivoId: ano.id, tipo: "NOVA" },
+      });
+  }
+  const contaEncarregado = await db.user.findUniqueOrThrow({
+    where: { email: "encarregado@exemplo.lamanu.test" },
+  });
+  const encarregado = await db.encarregado.upsert({
+    where: { bi: "ENC-SEED-0001" },
+    update: { userId: contaEncarregado.id },
+    create: {
+      nome: "Encarregado Fictício",
+      bi: "ENC-SEED-0001",
+      contacto: "900000000",
+      userId: contaEncarregado.id,
+    },
+  });
+  const ligacoes = [
+    [1, { verificado: true, autorizacaoActiva: true, principal: true }],
+    [2, { verificado: false, autorizacaoActiva: true, principal: false }],
+    [3, { verificado: true, autorizacaoActiva: false, principal: false }],
+  ] as const;
+  for (const [n, estado] of ligacoes) {
+    const e = await estudante(n);
+    await db.estudanteEncarregado.upsert({
+      where: { estudanteId_encarregadoId: { estudanteId: e.id, encarregadoId: encarregado.id } },
+      update: {},
+      create: { estudanteId: e.id, encarregadoId: encarregado.id, parentesco: "Pai", ...estado },
+    });
+  }
   console.log("Seed fictício concluído.");
 }
 

@@ -116,3 +116,18 @@ erDiagram
 - Ligação Estudante–Encarregado: só um encarregado "principal" por estudante?
 - Estados exactos da matrícula (ACTIVA, TRANSFERIDA, ANULADA, CONCLUIDA)?
 - Transições de estado do Pagamento (REGISTADO→CONFIRMADO por quem?) — propor: Financeiro regista, Direcção/Financeiro sénior confirma (D3).
+
+## 5. Estado de implementação — Entrega C (2026-10-13)
+Entidades criadas: `Periodo`, `Disciplina`, `Funcionario`, `TurmaDisciplina`, `Encarregado`, `EstudanteEncarregado`, `Matricula`; campos novos em `Turma` (`directorId`), `Estudante` (`bi`, `contacto`, `estado`).
+
+Garantias na base de dados (migração `20261013220000_estrutura_escolar`):
+| Garantia | Mecanismo |
+|---|---|
+| Uma matrícula ACTIVA por estudante e ano | Índice único parcial `Matricula_uma_activa_por_ano` |
+| Turma do mesmo ano da matrícula | FK composta `(turmaId, anoLectivoId)` → `Turma(id, anoLectivoId)` |
+| Um só ano lectivo ACTIVO | Índice único parcial `AnoLectivo_um_activo` |
+| Um só encarregado principal por estudante | Índice único parcial `EstudanteEncarregado_um_principal` |
+| Datas coerentes (ano, período, validade) | `CHECK` |
+| Um estudante/encarregado por conta; BI único | `UNIQUE` |
+
+Decisões e justificação: `docs/decisions/ADR-0002-estrutura-escolar-e-matriculas.md`.

@@ -7,18 +7,9 @@ import { enviarLinkDeRedefinicao } from "@/server/auth/recuperacao";
 import { revogarSessoesDoUtilizador } from "@/server/auth/sessao";
 import { randomBytes } from "node:crypto";
 
-export class ErroAutorizacao extends Error {
-  constructor(mensagem = "Sem permissão para esta operação.") {
-    super(mensagem);
-    this.name = "ErroAutorizacao";
-  }
-}
-export class ErroValidacao extends Error {
-  constructor(public erros: string[]) {
-    super(erros.join(" "));
-    this.name = "ErroValidacao";
-  }
-}
+import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
+
+export { ErroAutorizacao, ErroValidacao };
 
 function exigir(actor: Principal, permissao: "utilizadores:gerir" | "utilizadores:ver") {
   if (!can(actor, permissao)) throw new ErroAutorizacao();

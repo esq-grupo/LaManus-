@@ -15,14 +15,16 @@ enum EstadoAnoLectivo {
 }
 
 model AnoLectivo {
-  id        String           @id @default(uuid()) @db.Uuid
-  nome      String           @unique
-  inicio    DateTime         @db.Date
-  fim       DateTime         @db.Date
-  estado    EstadoAnoLectivo @default(PLANEADO)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  turmas    Turma[]
+  id         String           @id @default(uuid()) @db.Uuid
+  nome       String           @unique
+  inicio     DateTime         @db.Date
+  fim        DateTime         @db.Date
+  estado     EstadoAnoLectivo @default(PLANEADO)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  turmas     Turma[]
+  periodos   Periodo[]
+  matriculas Matricula[]
 }
 
 model Classe {
@@ -33,33 +35,45 @@ model Classe {
 }
 
 model Turma {
-  id           String     @id @default(uuid()) @db.Uuid
+  id           String            @id @default(uuid()) @db.Uuid
   nome         String
   turno        String
-  classeId     String     @db.Uuid
-  anoLectivoId String     @db.Uuid
-  classe       Classe     @relation(fields: [classeId], references: [id])
-  anoLectivo   AnoLectivo @relation(fields: [anoLectivoId], references: [id])
+  classeId     String            @db.Uuid
+  anoLectivoId String            @db.Uuid
+  classe       Classe            @relation(fields: [classeId], references: [id])
+  anoLectivo   AnoLectivo        @relation(fields: [anoLectivoId], references: [id])
+  directorId   String?           @db.Uuid
+  director     Funcionario?      @relation("DirectorDeTurma", fields: [directorId], references: [id])
+  disciplinas  TurmaDisciplina[]
+  matriculas   Matricula[]
   archivedAt   DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   @@unique([anoLectivoId, classeId, nome])
+  // Permite a chave estrangeira composta da Matricula (a turma TEM de ser do mesmo ano da matrícula).
+  @@unique([id, anoLectivoId])
+  @@index([directorId])
   @@index([classeId])
   @@index([anoLectivoId])
 }
 
 // Dados pessoais: neste momento só existem registos FICTÍCIOS (seed).
 model Estudante {
-  id             String    @id @default(uuid()) @db.Uuid
-  numeroProcesso String    @unique
+  id             String                 @id @default(uuid()) @db.Uuid
+  numeroProcesso String                 @unique
   nome           String
-  dataNascimento DateTime  @db.Date
-  userId         String?   @unique @db.Uuid
-  user           User?     @relation(fields: [userId], references: [id])
+  dataNascimento DateTime               @db.Date
+  bi             String?                @unique
+  contacto       String?
+  estado         EstadoEstudante        @default(ACTIVO)
+  matriculas     Matricula[]
+  encarregados   EstudanteEncarregado[]
+  userId         String?                @unique @db.Uuid
+  user           User?                  @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
   @@index([nome])
 }
@@ -87,6 +101,8 @@ model User {
   sessoes            Session[]
   resets             PasswordReset[]
   estudante          Estudante?
+  funcionario        Funcionario?
+  encarregado        Encarregado?
 }
 
 model Role {
@@ -178,4 +194,125 @@ model EventoAuditoria {
   @@index([actorId])
   @@index([acao, em])
   @@index([entidade, entidadeId])
+}
+
+// ───────── Entrega C: estrutura escolar, pessoas e matrículas ─────────
+
+enum EstadoEstudante {
+  ACTIVO
+  INACTIVO
+}
+
+enum TipoMatricula {
+  NOVA
+  RENOVACAO
+}
+
+enum EstadoMatricula {
+  ACTIVA
+  TRANSFERIDA
+  ANULADA
+  CONCLUIDA
+}
+
+model Periodo {
+  id           String     @id @default(uuid()) @db.Uuid
+  anoLectivoId String     @db.Uuid
+  ordem        Int
+  nome         String
+  inicio       DateTime   @db.Date
+  fim          DateTime   @db.Date
+  anoLectivo   AnoLectivo @relation(fields: [anoLectivoId], references: [id])
+
+  @@unique([anoLectivoId, ordem])
+  @@index([anoLectivoId])
+}
+
+model Disciplina {
+  id         String            @id @default(uuid()) @db.Uuid
+  nome       String            @unique
+  archivedAt DateTime?
+  turmas     TurmaDisciplina[]
+}
+
+model Funcionario {
+  id              String            @id @default(uuid()) @db.Uuid
+  nome            String
+  cargo           String
+  userId          String?           @unique @db.Uuid
+  user            User?             @relation(fields: [userId], references: [id])
+  archivedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  turmasDirigidas Turma[]           @relation("DirectorDeTurma")
+  leccionadas     TurmaDisciplina[]
+}
+
+model TurmaDisciplina {
+  id           String       @id @default(uuid()) @db.Uuid
+  turmaId      String       @db.Uuid
+  disciplinaId String       @db.Uuid
+  docenteId    String?      @db.Uuid
+  turma        Turma        @relation(fields: [turmaId], references: [id])
+  disciplina   Disciplina   @relation(fields: [disciplinaId], references: [id])
+  docente      Funcionario? @relation(fields: [docenteId], references: [id])
+
+  @@unique([turmaId, disciplinaId])
+  @@index([disciplinaId])
+  @@index([docenteId])
+}
+
+// Dados pessoais (BI, contactos): só registos FICTÍCIOS fora de produção.
+model Encarregado {
+  id         String                 @id @default(uuid()) @db.Uuid
+  nome       String
+  bi         String?                @unique
+  contacto   String?
+  userId     String?                @unique @db.Uuid
+  user       User?                  @relation(fields: [userId], references: [id])
+  archivedAt DateTime?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  estudantes EstudanteEncarregado[]
+
+  @@index([nome])
+}
+
+// O encarregado só vê o educando se `verificado` E `autorizacaoActiva` (e dentro da validade).
+model EstudanteEncarregado {
+  estudanteId       String      @db.Uuid
+  encarregadoId     String      @db.Uuid
+  parentesco        String
+  verificado        Boolean     @default(false)
+  autorizacaoActiva Boolean     @default(true)
+  principal         Boolean     @default(false)
+  validoDe          DateTime?   @db.Date
+  validoAte         DateTime?   @db.Date
+  verificadoPorId   String?     @db.Uuid
+  verificadoEm      DateTime?
+  createdAt         DateTime    @default(now())
+  estudante         Estudante   @relation(fields: [estudanteId], references: [id])
+  encarregado       Encarregado @relation(fields: [encarregadoId], references: [id])
+
+  @@id([estudanteId, encarregadoId])
+  @@index([encarregadoId])
+}
+
+model Matricula {
+  id           String          @id @default(uuid()) @db.Uuid
+  estudanteId  String          @db.Uuid
+  turmaId      String          @db.Uuid
+  anoLectivoId String          @db.Uuid
+  tipo         TipoMatricula
+  estado       EstadoMatricula @default(ACTIVA)
+  data         DateTime        @default(now())
+  createdById  String?         @db.Uuid
+  createdAt    DateTime        @default(now())
+  estudante    Estudante       @relation(fields: [estudanteId], references: [id])
+  anoLectivo   AnoLectivo      @relation(fields: [anoLectivoId], references: [id])
+  // Chave composta: a turma tem de pertencer ao mesmo ano lectivo da matrícula (garantido pela BD).
+  turma        Turma           @relation(fields: [turmaId, anoLectivoId], references: [id, anoLectivoId])
+
+  @@index([estudanteId])
+  @@index([turmaId])
+  @@index([anoLectivoId])
 }

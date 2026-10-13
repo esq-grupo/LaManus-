@@ -7,11 +7,20 @@ Actualizado: 2026-10-13
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
-- **Entrega B:** Codex **APROVADO** (revisão 2). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-B.md`).
-- **Depois:** C — Estrutura escolar (só após o OK do PO à Entrega B).
+- **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
+- **Entrega actual:** C — Estrutura escolar. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md`).
+- **Depois:** D — Avaliação (só após Codex APROVADO + OK PO na C).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
-## Tarefas da Entrega B
+## Tarefas da Entrega C
+- [x] Anos lectivos, períodos, classes, turmas, disciplinas, funcionários, atribuição de docentes
+- [x] Estudantes e encarregados (pesquisa por nome, n.º de processo e BI)
+- [x] Ligação estudante–encarregado com verificação e revogação
+- [x] Matrículas (nova/renovação), transferência de turma auditada, anulação
+- [x] Escopo real: estudante, encarregado, docente
+- [x] Testes: 30 unitários, 66 integração, 15 e2e
+
+## Tarefas da Entrega B (fechada)
 - [x] Modelo User/Role/Permission/Session/PasswordReset/EventoAuditoria + migração (trigger imutável)
 - [x] Login/logout, bloqueio (conta e IP), política de passwords, recuperação
 - [x] Camada `authz` (can, áreas, escopo, separação de funções)
@@ -42,3 +51,4 @@ Actualizado: 2026-10-13
 - Limitações da Entrega B: ver `docs/security.md` §7.
 - Limpeza agendada de sessões/tentativas/resets — por implementar.
 - Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
+- Entrega C: D9 (quem cria contas) por decidir — ADR-0002. Verificação documental da ligação sem anexo (Entrega G).

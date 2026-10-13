@@ -143,8 +143,15 @@ describe("authz — escopo de estudantes", () => {
       expect(escopoEstudantes(quem(...papeis))).toEqual({ id: { in: [] } });
     }
   });
-  it("encarregado e docente: escopo vazio até à Entrega C (negar por omissão)", () => {
-    expect(escopoEstudantes(quem("ENCARREGADO"))).toEqual({ id: { in: [] } });
-    expect(escopoEstudantes(quem("DOCENTE"))).toEqual({ id: { in: [] } });
+  it("encarregado: filtro exige verificado E autorização activa E ligação à sua conta", () => {
+    const f = JSON.stringify(escopoEstudantes(quem("ENCARREGADO")));
+    expect(f).toContain('"verificado":true');
+    expect(f).toContain('"autorizacaoActiva":true');
+    expect(f).toContain('"userId":"u1"');
+  });
+  it("docente: filtro limitado a matrículas activas em turmas que lecciona", () => {
+    const f = JSON.stringify(escopoEstudantes(quem("DOCENTE")));
+    expect(f).toContain('"estado":"ACTIVA"');
+    expect(f).toContain('"docente":{"userId":"u1"}');
   });
 });

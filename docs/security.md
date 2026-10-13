@@ -101,3 +101,26 @@ Notas de desenho:
 8. **Bloqueio como vector de negação de serviço**: quem conhece um email pode bloquear essa conta durante 15 min com 5 tentativas (inerente a qualquer bloqueio por conta). Mitigação: bloqueio curto, recuperação de conta disponível; avaliar CAPTCHA/atraso progressivo se for abusado.
 9. **Limite por IP é de melhor esforço**: a contagem é feita antes de agir (sem reserva atómica), por isso uma rajada pode ultrapassar ligeiramente o limiar; o limite por conta é rígido.
 10. As palavras-passe `SEED_PASSWORD` do `.env.example` e do CI são fictícias, só para desenvolvimento/CI; o seed recusa-se a correr em produção.
+
+## 8. Estado de implementação — Entrega C (2026-10-13)
+
+### Regras de escopo S1–S3 (agora testadas com dados reais)
+| # | Regra | Estado | Testes |
+|---|---|---|---|
+| S1 | Estudante só vê os próprios dados | **Testado** | `escopo.test.ts`, e2e «estudante vê só o próprio perfil» |
+| S2 | Encarregado só vê educandos `verificado` **e** `autorizacaoActiva` | **Testado** (não verificada, revogada, fora de validade, arquivado, sem ficha, acesso cruzado por ID, vários educandos) | `escopo.test.ts`, e2e fluxo completo |
+| S3 | Docente só as suas turmas | **Testado** (inclui perda de acesso após transferência do aluno) | `escopo.test.ts` |
+
+### Outras garantias
+- `obterEstudante` devolve `null` (404) tanto para inexistente como para fora do escopo — não revela existência.
+- Todas as Server Actions voltam a verificar a permissão no servidor (`exigirPermissao`) e auditam a recusa; a interface só esconde botões.
+- BI mascarado para quem não edita; nunca completo na auditoria.
+- Encarregado e estudante não vêem contactos nem BI de outros encarregados.
+- Toda a alteração (matrícula, transferência, anulação, verificação, revogação, atribuição de docente, ano lectivo…) gera evento de auditoria.
+
+### Limitações conhecidas (Entrega C)
+1. O encarregado só vê **nome e n.º de processo** do educando; notas e finanças chegam nas Entregas D–F.
+2. A verificação da ligação é um acto da Secretaria/Direcção; **não há ainda anexo do documento** que a comprova (Entrega G, documentos).
+3. Não existe ainda arquivo/«apagar» de estudantes na interface (só estado INACTIVO).
+4. A pesquisa usa `contains` simples (sem índice trigram): adequada ao volume previsto (≤1.500 estudantes).
+5. Criação de contas (D9) por decidir — ver ADR-0002.
