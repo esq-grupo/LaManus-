@@ -1,0 +1,63 @@
+// Esquema mínimo da Entrega A (fundação). O modelo completo vem nas entregas B–G (docs/data-model.md).
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoAnoLectivo {
+  PLANEADO
+  ACTIVO
+  FECHADO
+}
+
+model AnoLectivo {
+  id        String           @id @default(uuid()) @db.Uuid
+  nome      String           @unique
+  inicio    DateTime         @db.Date
+  fim       DateTime         @db.Date
+  estado    EstadoAnoLectivo @default(PLANEADO)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  turmas    Turma[]
+}
+
+model Classe {
+  id     String  @id @default(uuid()) @db.Uuid
+  nome   String  @unique
+  ordem  Int     @unique
+  turmas Turma[]
+}
+
+model Turma {
+  id           String     @id @default(uuid()) @db.Uuid
+  nome         String
+  turno        String
+  classeId     String     @db.Uuid
+  anoLectivoId String     @db.Uuid
+  classe       Classe     @relation(fields: [classeId], references: [id])
+  anoLectivo   AnoLectivo @relation(fields: [anoLectivoId], references: [id])
+  archivedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([anoLectivoId, classeId, nome])
+  @@index([classeId])
+  @@index([anoLectivoId])
+}
+
+// Dados pessoais: neste momento só existem registos FICTÍCIOS (seed).
+model Estudante {
+  id             String    @id @default(uuid()) @db.Uuid
+  numeroProcesso String    @unique
+  nome           String
+  dataNascimento DateTime  @db.Date
+  archivedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([nome])
+}

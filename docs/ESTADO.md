@@ -3,23 +3,26 @@
 Actualizado: 2026-10-13
 
 ## Posição actual
-- **Entrega actual:** 0 — Auditoria e plano
-- **Estado:** Codex: APROVADO COM RESSALVAS (revisão 2); ressalvas 6–8 corrigidas. **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-0.md`).
-- **Próxima entrega (só após aprovação):** A — Fundação técnica.
+- **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
+- **Entrega actual:** A — Fundação técnica. **Tarefas implementadas; a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-A.md`).
+- **Depois:** B — Identidade e segurança (só após Codex APROVADO + OK PO na A).
+- Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
-## Tarefas da Entrega 0
-- [x] 1. Inspecção do repositório, Git e ferramentas
-- [x] 2. Arquitectura confirmada + ADR-0001
-- [x] 3. `docs/requirements.md`
-- [x] 4. `docs/data-model.md` e `docs/security.md`
-- [x] 5. `docs/migration-excel.md`
-- [x] 6. Riscos e decisões pendentes (`docs/riscos.md`)
-
-## Registo de baixos / pendências
-- `AGENTS.md` (manual do Codex) e `CLAUDE.md` não existem no repositório; ver risco R10.
-- Ver decisões D1–D14 em `docs/decisions/ADR-0001-arquitectura.md` e `docs/riscos.md`.
+## Tarefas da Entrega A
+- [x] Scaffold Next.js 16 + TypeScript strict
+- [x] Tailwind CSS 4
+- [x] Prisma 7 + PostgreSQL 16 (`docker-compose.yml`), migração inicial
+- [x] `.env.example` (sem segredos reais)
+- [x] Scripts `lint`, `typecheck`, `test`, `test:e2e`, `db:migrate`, `db:seed`
+- [x] GitHub Actions (`.github/workflows/ci.yml`) — **ainda não correu no GitHub** (ver relatório)
+- [x] Layout com 3 áreas (interno, estudante, encarregado) + login vazio
+- [x] Seed fictício idempotente
+- [x] `README.md`
 
 ## Pendências registadas
-- P3 (unidade monetária) — aguarda PO/escola antes da Entrega A.
+- P1 (guardar CLAUDE.md/AGENTS.md no repo), P3 (unidade monetária) — aguardam PO/escola.
 - Verificar renderização do Mermaid no GitHub.
-- Atribuir nomes aos responsáveis dos riscos (Entrega A).
+- Atribuir nomes aos responsáveis dos riscos.
+- Teste de carga do servidor (ADR-0001) — Entrega F.
+- Docker não disponível no ambiente do construtor; `docker compose` não foi testado (usado PostgreSQL 16 local).
+- Next.js gera um `AGENTS.md` ao instalar; foi removido e ignorado para não colidir com o manual do Codex.
