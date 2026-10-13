@@ -23,7 +23,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - name: npm ci (até 3 tentativas: o download dos binários do Prisma pode falhar por rede)
+        run: |
+          for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
       - run: npx prisma generate
       - run: npm run lint
       - run: npm run format:check
@@ -47,7 +49,9 @@ jobs:
           cache: npm
       - run: cp .env.example .env
       - run: docker compose up -d --wait db
-      - run: npm ci
+      - name: npm ci (até 3 tentativas: o download dos binários do Prisma pode falhar por rede)
+        run: |
+          for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
       - run: npm run db:generate
       - run: npx prisma migrate deploy
       - run: npm run db:seed
