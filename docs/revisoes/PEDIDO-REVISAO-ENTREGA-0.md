@@ -4,7 +4,7 @@ Data: 2026-10-13 · Revisor: Codex · Veredicto esperado em `docs/revisoes/VERED
 
 ## Objectivo e critérios de aceitação (§9)
 Inspeccionar repositório/ferramentas; confirmar arquitectura (ADR-0001); requisitos (confirmado vs pressuposto); modelo de dados (ER Mermaid) e segurança (matriz); especificação de migração Excel; riscos e decisões pendentes.
-**Aceitação:** documentos criados; **nenhum código de produto**; relatório no formato §13.
+**Aceitação:** documentos criados; **nenhum código de produto**; relatório no formato da §13 do `CLAUDE.md` (secção 8 do manual do Codex).
 
 ## Ficheiros
 - `docs/ESTADO.md`

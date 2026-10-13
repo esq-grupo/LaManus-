@@ -1,6 +1,6 @@
 # Modelo de dados — Lá Manu (versão Entrega 0, a refinar na Entrega A)
 
-Convenções: `id` UUID · `createdAt`, `updatedAt`, `createdById` · dinheiro `Int` (cêntimos de Kz) · `archivedAt` (soft delete) nas entidades académicas · **movimentos financeiros nunca se apagam nem editam**.
+Convenções: `id` UUID · `createdAt`, `updatedAt`, `createdById` · dinheiro em `BigInt` (cêntimos de Kz; 1 Kz = 100 cêntimos; ver §2.1) · `archivedAt` (soft delete) nas entidades académicas · **movimentos financeiros nunca se apagam nem editam**.
 
 ## 1. Diagrama ER
 
@@ -45,6 +45,8 @@ erDiagram
   Encargo ||--o{ AlocacaoPagamento : recebe
   Pagamento ||--o| Recibo : gera
   Pagamento ||--o{ Estorno : "pode ter"
+  Estorno ||--o{ EstornoAlocacao : reverte
+  AlocacaoPagamento ||--o{ EstornoAlocacao : "revertida por"
 
   Estudante ||--o{ PedidoDeclaracao : "pedido para"
   PedidoDeclaracao |o--o| Documento : emite
@@ -85,8 +87,9 @@ erDiagram
 - **Pagamento** (estudante, pagoPor opcional, valor > 0, método, referenciaExterna, data, registadoPor, estado REGISTADO/CONFIRMADO/ESTORNADO). Valor nunca editável.
 - **AlocacaoPagamento** (pagamento, encargo, valor > 0). Regra: Σ alocações ≤ valor do pagamento (verificada em transacção + constraint trigger).
 - **Recibo** (série, número sequencial sem saltos, pagamento UNIQUE, pdfDocumento, emitidoPor). UNIQUE(série, número).
-- **Estorno** (pagamento, motivo, proposto por, autorizado por ≠ proponente) → gera movimento inverso (alocações negativas registadas como linhas de estorno).
-- **Saldo** = Σ encargos − Σ alocações líquidas de estornos; vista/consulta, nunca coluna editável.
+- **Estorno** (pagamento, motivo, proposto por, autorizado por ≠ proponente, valor > 0, estado PROPOSTO/APROVADO/REJEITADO). Estorno total ou parcial.
+- **EstornoAlocacao** (estorno, alocação original, valor > 0): reverte, no todo ou em parte, uma alocação concreta. Regras (transacção + constraint trigger): Σ EstornoAlocacao de uma alocação ≤ valor dessa alocação; Σ EstornoAlocacao de um estorno = valor do estorno. Todos os valores permanecem positivos; o sentido é dado pela tabela. Só existe depois de o estorno ser APROVADO.
+- **Saldo do encargo** = valor − (Σ AlocacaoPagamento − Σ EstornoAlocacao); **saldo do estudante** = Σ saldos dos seus encargos; vista/consulta, nunca coluna editável.
 
 ### Pedidos e documentos
 - **PedidoDeclaracao** (tipo, estudante, solicitante, estado PEDIDO/EM_ANALISE/APROVADO/EMITIDO/REJEITADO, motivo, histórico).
@@ -97,10 +100,16 @@ erDiagram
 - **EventoAuditoria** (actor, acção, entidade, entidadeId, antes, depois, ip, data) — só inserção.
 - **LoteMigracao** / **ErroMigracao** (ficheiro, folha, linha, coluna, valor, motivo).
 
+### 2.1 Unidade monetária (provisória — a confirmar com a escola)
+- **Apresentação:** Kz inteiros, sem decimais (ex.: `15 000 Kz`).
+- **Armazenamento:** `BigInt` em cêntimos (ex.: 15 000 Kz → `1500000`). Conversão única em `src/lib/dinheiro` (`kzParaCentimos`, `centimosParaKz`); nenhum outro código multiplica/divide por 100.
+- `BigInt` (e não `Int` de 32 bits, máx. ≈ 21 milhões de Kz) para totais e relatórios não transbordarem.
+- Importação Excel: valores em Kz inteiros → ×100; valores com decimais são rejeitados para revisão.
+
 ## 3. Integridade em base de dados
 - Índices em todas as FKs e em nome, numeroProcesso, BI.
 - CHECK em valores monetários; UNIQUE parciais (ano activo, matrícula activa).
-- Triggers: bloquear UPDATE/DELETE em `Pagamento` (excepto transição de estado permitida), `AlocacaoPagamento`, `Recibo`, `EventoAuditoria`.
+- Triggers: bloquear UPDATE/DELETE em `Pagamento` (excepto transição de estado permitida), `AlocacaoPagamento`, `Estorno` (excepto transição de estado), `EstornoAlocacao`, `Recibo`, `EventoAuditoria`.
 - Sequência de recibos por tabela de contadores com bloqueio de linha.
 
 ## 4. Questões em aberto

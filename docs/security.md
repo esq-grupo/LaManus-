@@ -32,6 +32,12 @@
 | Utilizadores e papéis | 👁 | — | — | — | — | — | — | — | ✏️ |
 | Auditoria | 👁 | — | — | — | — | 👁 | — | — | 👁 |
 
+| Notificações | ✏️ próprias + envio | ✏️ próprias + envio | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias | 👁 próprias |
+| Relatórios | ver abaixo | ver abaixo | ver abaixo | — | — | ver abaixo | — | — | — |
+
+Notificações: cada utilizador só lê as suas (destinatário = sessão); só Direcção e Secretaria podem enviar avisos manuais; as automáticas (pauta publicada, recibo, estado de pedido) são geradas pelo servidor.
+Relatórios: são vistas dos recursos existentes e **herdam o seu escopo** (ex.: dívidas por turma = Financeiro ✏️/Direcção 👁/Secretaria 👁; pautas e médias = Direcção/Qualidade 👁; extracto = o do estudante/encarregado no portal). Não existe relatório com permissão própria. Exportações (CSV/PDF) geram evento de auditoria.
+
 Notas de desenho:
 - O Admin técnico gere contas mas **não vê dados académicos nem financeiros**; atribuir-se a si próprio papéis de negócio é bloqueado e auditado (separação de funções).
 - Quem propõe um estorno (Financeiro) não o aprova (Direcção); o mesmo utilizador nunca cumpre as duas funções.
