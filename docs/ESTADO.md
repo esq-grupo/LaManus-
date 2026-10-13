@@ -7,8 +7,8 @@ Actualizado: 2026-10-13
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
-- **Entrega actual:** B — Identidade e segurança. Revisão 1 REPROVADA (bloqueio não atómico; falha de email na recuperação) → corrigido; **a aguardar revisão n.º 2 do Codex**.
-- **Depois:** C — Estrutura escolar (só após Codex APROVADO + OK PO na B).
+- **Entrega B:** Codex **APROVADO** (revisão 2). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-B.md`).
+- **Depois:** C — Estrutura escolar (só após o OK do PO à Entrega B).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Tarefas da Entrega B
@@ -41,3 +41,4 @@ Actualizado: 2026-10-13
 - Next.js gera um `AGENTS.md` ao instalar; foi removido e ignorado para não colidir com o manual do Codex.
 - Limitações da Entrega B: ver `docs/security.md` §7.
 - Limpeza agendada de sessões/tentativas/resets — por implementar.
+- Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
