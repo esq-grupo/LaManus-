@@ -6,3 +6,5 @@
 
 ## Resposta do construtor
 **Aceite.** Não consigo executar Docker no meu ambiente, por isso não afirmo ter testado o `docker compose`. Acrescentei ao CI o job `compose`, que corre num runner com Docker: `cp .env.example .env` → `docker compose up -d --wait db` → `npm ci` → `prisma migrate deploy` → `db:seed` → confirma 5 estudantes → `docker compose down -v`. É exactamente a sequência do README. A evidência passa a ser a execução desse job no GitHub (ver relatório). Pedida revisão n.º 2.
+
+**Evidência (adenda):** execução 38463072539 — job `compose` verde (tentativa 2; a 1.ª falhou por `ECONNRESET` no `npm ci`, transitório) e job `verificar` verde. Detalhe em `RELATORIO-ENTREGA-A.md`.

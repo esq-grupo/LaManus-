@@ -23,6 +23,9 @@ Qualidade: `npm run lint && npm run format:check && npm run typecheck && npm tes
 5. Rotas das três áreas sem protecção (intencional até à Entrega B; páginas só com texto estático).
 
 ## Limitações
-- O CI **não foi executado no GitHub** (só localmente); Docker indisponível no ambiente do construtor, `docker compose` não testado (usado PostgreSQL 16 local).
+- Docker indisponível no ambiente do construtor. O caminho `docker compose` é exercitado pelo job `compose` do CI (execução 38463072539, verde na tentativa 2; a 1.ª falhou por ECONNRESET transitório no `npm ci`).
 - Um `AGENTS.md` gerado pelo Next.js foi removido e ignorado para não colidir com o do Codex.
 - Sem `Dockerfile` da aplicação, sem Nginx/Caddy e sem backups (previstos para a Entrega H).
+
+## Revisão n.º 2
+Correcção ao REPROVADO da revisão 1: ver `VEREDICTO-ENTREGA-A.md` e adenda em `RELATORIO-ENTREGA-A.md`.

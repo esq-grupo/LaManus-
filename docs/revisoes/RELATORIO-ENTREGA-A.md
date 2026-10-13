@@ -23,3 +23,11 @@ Criei o esqueleto técnico: aplicação Next.js em TypeScript estrito, estilos T
 Usei D1–D14 e P3 como provisórios. Pergunta: fazer commit do `CLAUDE.md` e `AGENTS.md` do Codex (P1)? 1. *(Recomendado)* sim, na `main`; 2. só o AGENTS.md; 3. não.
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-A.md` ao Codex e ver se o CI fica verde no GitHub. Paro aqui.
+
+---
+### Adenda — revisão n.º 2 (2026-10-13)
+**Evidência do caminho Docker Compose** (GitHub Actions, execução 38463072539, commit `3a43b38`, https://github.com/esq-grupo/LaManus-/actions/runs/38463072539):
+- Job `compose` (tentativa 2): `cp .env.example .env` → `docker compose up -d --wait db` (PostgreSQL 16 *Healthy*) → `npm ci` → `db:generate` → `prisma migrate deploy` → `db:seed` → confirmação de 5 estudantes → `docker compose down -v`: **todos os passos verdes**.
+- Job `verificar`: lint, format:check, typecheck, testes, migração, seed e E2E **verdes**.
+- A tentativa 1 do `compose` falhou no `npm ci` com `ECONNRESET` ao descarregar binários do Prisma (falha de rede transitória, antes de qualquer passo do projecto). Foi repetida **uma vez** só o job falhado, e passou. Registo-o para transparência.
+- Não consegui testar Docker no meu ambiente; a evidência é a do runner do GitHub.
