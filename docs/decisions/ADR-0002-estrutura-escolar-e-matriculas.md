@@ -20,7 +20,7 @@ A Entrega C introduz as entidades de que dependem notas, finanças e portais. O 
 10. **Docente de uma disciplina** tem de ser um Funcionário com conta de papel Docente.
 
 ## Divergência a decidir pelo PO (D9)
-O guião (D9, provisória) diz «contas de estudante criadas pela Secretaria». Na Entrega B ficou que **só o Administrador técnico cria contas** (princípio do menor privilégio). Na Entrega C a Secretaria **associa** contas já existentes ao estudante/encarregado, mas não as cria. Falta decidir quem cria as contas — pergunta ao PO.
+O guião (D9, provisória) diz «contas de estudante criadas pela Secretaria». Na Entrega B ficou que **só o Administrador técnico cria contas** (princípio do menor privilégio). Na Entrega C a Secretaria **associa** contas já existentes ao estudante/encarregado, mas não as cria. **Decisão do PO (2026-10-14): manter — só o Administrador técnico cria contas**; a Secretaria pede a conta e associa-a depois. Estado de D9: aprovada pelo PO (E-ESQ); a confirmar com a escola.
 
 ## Alternativas rejeitadas
 | Alternativa | Motivo |

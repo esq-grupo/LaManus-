@@ -51,4 +51,4 @@ Actualizado: 2026-10-13
 - Limitações da Entrega B: ver `docs/security.md` §7.
 - Limpeza agendada de sessões/tentativas/resets — por implementar.
 - Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
-- Entrega C: D9 (quem cria contas) por decidir — ADR-0002. Verificação documental da ligação sem anexo (Entrega G).
+- Entrega C: D9 decidida pelo PO em 2026-10-14 — só o Admin técnico cria contas (ADR-0002); a confirmar com a escola. Verificação documental da ligação sem anexo (Entrega G).

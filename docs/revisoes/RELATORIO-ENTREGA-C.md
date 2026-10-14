@@ -16,7 +16,7 @@ A escola já pode registar anos lectivos, trimestres, classes, turmas, disciplin
 
 **E. Riscos / limitações** — `docs/security.md` §8. Em particular: a verificação da ligação não tem ainda anexo do documento; contas (D9) por decidir.
 
-**F. Decisões provisórias** — ADR-0002 (NOVA/RENOVAÇÃO validadas, transferência só no mesmo ano, n.º de processo manual, BI mascarado…). **Pergunta ao PO (D9)** em aberto, feita com 3 opções.
+**F. Decisões provisórias** — ADR-0002 (NOVA/RENOVAÇÃO validadas, transferência só no mesmo ano, n.º de processo manual, BI mascarado…). **D9 decidida pelo PO** (3 opções): só o Admin técnico cria contas.
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md` ao Codex. Paro aqui.
 

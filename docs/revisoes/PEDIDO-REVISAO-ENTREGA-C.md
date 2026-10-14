@@ -29,7 +29,7 @@ Contas fictícias: `<papel>@exemplo.lamanu.test` (palavra-passe = `SEED_PASSWORD
 3. `modules/matriculas.ts`: transacção da transferência e mensagens de erro para violações de unicidade.
 4. `src/app/(interno)/interno/acoes.ts`: todas as acções verificam permissão no servidor.
 5. `FormAcao.tsx`: deixou de usar `<form action>` para não perder o que o utilizador escreveu quando há erro.
-6. D9 (quem cria contas) em aberto — ADR-0002.
+6. D9 decidida pelo PO (só o Admin técnico cria contas) — ADR-0002.
 
 ## Limitações
 Ver `docs/security.md` §8. O encarregado só vê nome e n.º de processo (notas e finanças nas Entregas D–F). CI verde no commit `252a0f0`: https://github.com/esq-grupo/LaManus-/actions/runs/38471439069
