@@ -61,4 +61,4 @@ Actualizado: 2026-10-13
 - Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
 - Entrega C: D9 decidida pelo PO em 2026-10-14 — só o Admin técnico cria contas (ADR-0002); a confirmar com a escola. Verificação documental da ligação sem anexo (Entrega G).
 - Antes de migrar bases com dados: `npm run db:preflight` (docs/migracoes.md).
-- Entrega D: fórmula (D4) e validação estrita provisórias; quem corrige notas publicadas (Direcção) por confirmar — ADR-0003.
+- Entrega D: fórmula (D4) e validação estrita provisórias; quem corrige notas publicadas: decidido pelo PO em 2026-10-16 (só a Direcção, com motivo) — ADR-0003; a confirmar com a escola.

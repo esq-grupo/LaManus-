@@ -16,7 +16,7 @@ Os docentes criam avaliações (com peso) nas suas disciplinas e lançam as nota
 
 **E. Riscos / limitações** — `docs/security.md` §9: fórmula (D4) e validação estrita provisórias; sem notificações nem boletim em PDF; sem média anual.
 
-**F. Decisões e pergunta ao PO** — ADR-0003. A pergunta «quem corrige notas já publicadas» fica feita com 3 opções.
+**F. Decisões e pergunta ao PO** — ADR-0003. **Decidido pelo PO (3 opções): só a Direcção corrige notas publicadas, com motivo.**
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-D.md` ao Codex. Paro aqui.
 
