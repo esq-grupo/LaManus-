@@ -1,31 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Resultado } from "@/components/FormAcao";
-import { exigirPermissao, ipDoPedido } from "@/server/auth/dal";
-import type { Permissao, Principal } from "@/server/authz";
-import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
+import { correrAccao } from "@/server/accao";
 import * as estrutura from "@/server/modules/estrutura";
 import * as matriculas from "@/server/modules/matriculas";
 import * as pessoas from "@/server/modules/pessoas";
 
-type Fn = (actor: Principal, ip: string | null) => Promise<string>;
-
-/** Verifica a permissão NO SERVIDOR (e audita se recusada), executa e converte erros de negócio em mensagens. */
-async function correr(permissao: Permissao, fn: Fn, caminhos: string[]): Promise<Resultado> {
-  const actor = await exigirPermissao(permissao);
-  const ip = await ipDoPedido();
-  try {
-    const ok = await fn(actor, ip);
-    for (const c of caminhos) revalidatePath(c);
-    return { ok };
-  } catch (e) {
-    if (e instanceof ErroValidacao) return { erro: e.erros.join(" ") };
-    if (e instanceof ErroAutorizacao) return { erro: e.message };
-    throw e;
-  }
-}
+const correr = correrAccao;
 
 const obj = (f: FormData) => Object.fromEntries(f.entries());
 const E = "/interno/estrutura";

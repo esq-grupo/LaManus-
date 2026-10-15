@@ -132,3 +132,17 @@ Garantias na base de dados (migração `20261013220000_estrutura_escolar`):
 | Um estudante/encarregado por conta; BI único | `UNIQUE` |
 
 Decisões e justificação: `docs/decisions/ADR-0002-estrutura-escolar-e-matriculas.md`.
+
+## 6. Estado de implementação — Entrega D (2026-10-16)
+Entidades: `Avaliacao`, `Nota`, `PautaPublicacao`; `Periodo` ganha `UNIQUE(id, anoLectivoId)` e `TurmaDisciplina` `UNIQUE(id, turmaId)` para as chaves compostas.
+
+| Garantia | Mecanismo |
+|---|---|
+| A disciplina da avaliação é da turma; o período é do mesmo ano da turma | FK compostas em `Avaliacao` e `PautaPublicacao` |
+| Nota de 0 a 20 (centésimas, 0–2000); peso de 1 a 100 | `CHECK` |
+| Uma nota por estudante e avaliação | `UNIQUE(avaliacaoId, estudanteId)` |
+| Estado da pauta coerente com as datas | `CHECK` `Pauta_estado_ck` |
+| Transições RASCUNHO→VALIDADA→PUBLICADA (e VALIDADA→RASCUNHO); PUBLICADA definitiva; pautas não se apagam | Gatilho `pauta_transicao` |
+| Notas e avaliações imutáveis com a pauta VALIDADA/PUBLICADA (excepto correcção com motivo) | Gatilhos `nota_bloqueada` e `avaliacao_bloqueada` + `app.permitir_correcao` |
+
+Decisões: `docs/decisions/ADR-0003-avaliacao-e-pautas.md`.

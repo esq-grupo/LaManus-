@@ -25,6 +25,7 @@
 | Estudantes / matrículas | ✏️ | ✏️ | 👁 | 👁 suas turmas | — | 👁 | 👁 próprio | 👁 educandos verificados | — |
 | Lançar notas | 👁 | — | — | ✏️ suas disciplinas | — | — | — | — | — |
 | Validar/publicar pauta | ✏️ | — | — | — | — | — | — | — | — |
+| Corrigir nota depois de publicada (com motivo) | ✏️ | — | — | — | — | — | — | — | — |
 | Ver notas | 👁 | 👁 | — | 👁 suas turmas | — | 👁 | 👁 publicadas | 👁 publicadas | — |
 | Encargos / pagamentos | 👁 | 👁 | ✏️ | — | — | — | 👁 próprio | 👁 educandos | — |
 | Estornos | aprova | — | propõe | — | — | — | — | — | — |
@@ -127,3 +128,28 @@ Notas de desenho:
 3. Não existe ainda arquivo/«apagar» de estudantes na interface (só estado INACTIVO).
 4. A pesquisa usa `contains` simples (sem índice trigram): adequada ao volume previsto (≤1.500 estudantes).
 5. Criação de contas (D9) por decidir — ver ADR-0002.
+
+## 9. Estado de implementação — Entrega D (2026-10-16)
+
+### Regras S3 e S4 (agora testadas)
+| # | Regra | Estado | Testes |
+|---|---|---|---|
+| S3 | Docente só lança nas suas disciplinas/turmas | **Testado** (outro docente, docente da mesma disciplina noutra turma, todos os outros papéis; recusado e auditado) | `avaliacao.test.ts` |
+| S4 | Notas não publicadas nunca chegam aos portais | **Testado** (resposta sem valores nem IDs dos períodos validado/rascunho; vazia antes da publicação; efeito imediato ao publicar/corrigir) | `notas-visibilidade.test.ts`, e2e |
+
+### Garantias
+- **Filtro «PUBLICADA» na própria consulta SQL** (`notas-leitura.ts`): para estudantes e encarregados a nota por publicar nem sai da base de dados. Os portais não recebem o estado da pauta.
+- **Bloqueio na BD**: com a pauta VALIDADA/PUBLICADA nenhuma nota ou avaliação muda por qualquer caminho, excepto o serviço de correcção. Transições inválidas e apagar pautas são rejeitadas por gatilho.
+- **Correcção após publicação**: permissão própria `notas:corrigir` (só Direcção), motivo obrigatório, auditoria antes/depois; o docente não corrige depois de publicar.
+- **Concorrência**: validar/publicar/reabrir bloqueiam a pauta (`FOR UPDATE`), lançar notas bloqueia-a em modo partilhado (`FOR SHARE`).
+- **Leitura de pautas com escopo**: o Docente só vê as suas colunas; estudantes e encarregados não têm acesso a pautas.
+- Todas as operações gravam alteração e auditoria na mesma transacção.
+
+### Matriz de leitura de notas (testada papel a papel)
+Direcção, Secretaria, Qualidade: tudo (com o estado). Docente: só as suas disciplinas, de estudantes do seu escopo. Estudante/Encarregado: só o publicado, do próprio/dos educandos verificados e activos. Financeiro, RH, Admin técnico: recusados.
+
+### Limitações conhecidas (Entrega D)
+1. A fórmula (D4) e a **validação estrita** (todas as notas lançadas) são provisórias; faltas justificadas/estudantes dispensados não estão modelados.
+2. Os portais mostram notas e médias, mas **não há ainda notificação** de pauta publicada (Entrega F) nem boletim em PDF (Entrega G).
+3. Não existem ainda avaliações de recuperação nem média anual (só por período).
+4. Não há anulação/eliminação de avaliações pela interface (só criar e lançar).

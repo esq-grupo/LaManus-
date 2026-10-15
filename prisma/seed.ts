@@ -158,6 +158,81 @@ async function main() {
       create: { estudanteId: e.id, encarregadoId: encarregado.id, parentesco: "Pai", ...estado },
     });
   }
+
+  // Avaliação fictícia do TESTE-0001 na turma A: 1.º período PUBLICADO, 2.º VALIDADO (ainda não publicado), 3.º em RASCUNHO.
+  const direccao = await db.user.findUniqueOrThrow({
+    where: { email: "direccao@exemplo.lamanu.test" },
+  });
+  const [p1, p2, p3] = await db.periodo.findMany({
+    where: { anoLectivoId: ano.id },
+    orderBy: { ordem: "asc" },
+  });
+  const tdA = await db.turmaDisciplina.findMany({
+    where: { turmaId: turmaA.id },
+    include: { disciplina: true },
+  });
+  const matematica = tdA.find((t) => t.disciplina.nome === "Matemática")!;
+  const portugues = tdA.find((t) => t.disciplina.nome === "Língua Portuguesa")!;
+  const aluno1 = await estudante(1);
+  const avaliar = async (
+    td: typeof matematica,
+    periodo: NonNullable<typeof p1>,
+    nome: string,
+    peso: number,
+    valor: number,
+  ) => {
+    if (
+      await db.avaliacao.findFirst({
+        where: { turmaDisciplinaId: td.id, periodoId: periodo.id, nome },
+      })
+    )
+      return;
+    const a = await db.avaliacao.create({
+      data: {
+        turmaDisciplinaId: td.id,
+        turmaId: turmaA.id,
+        anoLectivoId: ano.id,
+        periodoId: periodo.id,
+        tipo: "TESTE",
+        nome,
+        peso,
+        data: new Date(periodo.inicio.getTime() + 5 * 864e5),
+      },
+    });
+    await db.nota.create({
+      data: { avaliacaoId: a.id, estudanteId: aluno1.id, valor, lancadaPorId: docente.userId },
+    });
+  };
+  if (p1 && p2 && p3) {
+    await avaliar(matematica, p1, "Teste 1", 40, 1450);
+    await avaliar(matematica, p1, "Exame", 60, 1600);
+    await avaliar(portugues, p1, "Teste de Português", 100, 1300);
+    await avaliar(matematica, p2, "Teste 2", 100, 1700);
+    await avaliar(matematica, p3, "Teste 3", 100, 1888);
+    const avancar = async (periodoId: string, ate: "VALIDADA" | "PUBLICADA") => {
+      const chave = { turmaId_periodoId: { turmaId: turmaA.id, periodoId } };
+      await db.pautaPublicacao.upsert({
+        where: chave,
+        update: {},
+        create: { turmaId: turmaA.id, periodoId, anoLectivoId: ano.id },
+      });
+      let pauta = await db.pautaPublicacao.findUniqueOrThrow({ where: chave });
+      if (pauta.estado === "RASCUNHO") {
+        pauta = await db.pautaPublicacao.update({
+          where: chave,
+          data: { estado: "VALIDADA", validadaPorId: direccao.id, validadaEm: new Date() },
+        });
+      }
+      if (ate === "PUBLICADA" && pauta.estado === "VALIDADA") {
+        await db.pautaPublicacao.update({
+          where: chave,
+          data: { estado: "PUBLICADA", publicadaPorId: direccao.id, publicadaEm: new Date() },
+        });
+      }
+    };
+    await avancar(p1.id, "PUBLICADA");
+    await avancar(p2.id, "VALIDADA");
+  }
   console.log("Seed fictício concluído.");
 }
 

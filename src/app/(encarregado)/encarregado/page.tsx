@@ -1,14 +1,17 @@
+import { QuadroNotas } from "@/components/QuadroNotas";
 import { exigirArea } from "@/server/auth/dal";
+import { notasDoEstudante } from "@/server/modules/notas-leitura";
 import { meusEducandos } from "@/server/modules/pessoas";
 
 export const metadata = { title: "Portal do Encarregado — Lá Manu" };
 
-// Só aparecem educandos com ligação verificada E autorização activa (escopo derivado da sessão).
+// Só aparecem educandos com ligação verificada E autorização activa, e só as notas já PUBLICADAS.
 export default async function Pagina() {
   const user = await exigirArea("encarregado");
   const educandos = await meusEducandos(user);
+  const notas = await Promise.all(educandos.map((e) => notasDoEstudante(user, e.id)));
   return (
-    <main className="mx-auto max-w-2xl space-y-3 p-6">
+    <main className="mx-auto max-w-2xl space-y-4 p-6">
       <h1 className="text-xl font-semibold">Os meus educandos</h1>
       {educandos.length === 0 ? (
         <p className="text-slate-600">
@@ -16,10 +19,16 @@ export default async function Pagina() {
           verificar a ligação.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {educandos.map((e) => (
-            <li key={e.id} className="rounded border bg-white p-3" data-testid="educando">
-              {e.nome} <span className="text-sm text-slate-600">· Processo {e.numeroProcesso}</span>
+        <ul className="space-y-4">
+          {educandos.map((e, i) => (
+            <li key={e.id} className="space-y-2" data-testid="educando">
+              <p className="font-medium">
+                {e.nome}{" "}
+                <span className="text-sm font-normal text-slate-600">
+                  · Processo {e.numeroProcesso}
+                </span>
+              </p>
+              {notas[i] && <QuadroNotas notas={notas[i]} />}
             </li>
           ))}
         </ul>

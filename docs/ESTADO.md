@@ -9,11 +9,18 @@ Actualizado: 2026-10-13
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
-- **Entrega actual:** D — Avaliação (em curso).
+- **Entrega actual:** D — Avaliação. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-D.md`).
 - **Depois:** E — Financeiro base (só após Codex APROVADO + OK PO na D).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
-## Tarefas da Entrega C
+## Tarefas da Entrega D
+- [x] Avaliações com pesos; lançamento de notas só pelo docente da disciplina
+- [x] Médias (fórmula D4 provisória: ponderada, 1 casa, meio para cima), em inteiros
+- [x] Pautas: validar → publicar (e reabrir); correcção após publicação com motivo (Direcção)
+- [x] Portais: só notas publicadas (filtro na consulta SQL)
+- [x] Testes: 41 unitários, 116 integração, 23 e2e
+
+## Tarefas da Entrega C (fechada)
 - [x] Anos lectivos, períodos, classes, turmas, disciplinas, funcionários, atribuição de docentes
 - [x] Estudantes e encarregados (pesquisa por nome, n.º de processo e BI)
 - [x] Ligação estudante–encarregado com verificação e revogação
@@ -54,3 +61,4 @@ Actualizado: 2026-10-13
 - Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
 - Entrega C: D9 decidida pelo PO em 2026-10-14 — só o Admin técnico cria contas (ADR-0002); a confirmar com a escola. Verificação documental da ligação sem anexo (Entrega G).
 - Antes de migrar bases com dados: `npm run db:preflight` (docs/migracoes.md).
+- Entrega D: fórmula (D4) e validação estrita provisórias; quem corrige notas publicadas (Direcção) por confirmar — ADR-0003.
