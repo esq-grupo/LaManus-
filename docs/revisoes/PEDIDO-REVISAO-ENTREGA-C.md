@@ -39,4 +39,5 @@ Corrige os 4 achados da revisão 1 (Docente via estrutura de todas as turmas; NO
 - Testes locais: **31 unitários + 79 integração + 17 e2e, todos a passar**; a suite também passa com `TZ=America/Los_Angeles` e `TZ=Pacific/Kiritimati`.
 - Cada achado foi reproduzido com um teste que falhava antes da correcção; as correcções foram validadas por mutação.
 - Atenção especial: `src/server/authz/scope.ts` (`escopoTurmas`), `modules/estrutura.ts` (`listarEstrutura`), migração `20261015100000_matricula_nova_unica`, `lib/datas.ts` (`hojeEmLuanda`), `audit/index.ts` (`comAuditoria`) e `tests/integration/ajuda.ts` (`comFalhaDeAuditoria`).
+- CI verde no commit `1bc650a`: https://github.com/esq-grupo/LaManus-/actions/runs/38810347287
 - Pedido: rever também outros pontos onde o escopo por papel possa estar mais largo do que a matriz (`docs/security.md` §3).

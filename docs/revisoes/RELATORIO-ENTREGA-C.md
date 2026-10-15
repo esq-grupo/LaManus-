@@ -28,3 +28,4 @@ Correcções ao REPROVADO da revisão 1 (4 achados); resposta ponto a ponto em `
 - Local: 31 unitários + 79 integração + 17 e2e a passar; lint, formatação, typecheck e build sem erros; suite repetida com dois fusos horários extremos.
 - Mutações detectadas pelos testes (filtro do Docente, UTC em vez de Luanda, índice da «Nova», auditoria depois do commit).
 - CI: ver adenda seguinte após o push.
+- CI: execução [38810347287](https://github.com/esq-grupo/LaManus-/actions/runs/38810347287), commit `1bc650a`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; inclui 110 testes de unidade/integração e 17 e2e).
