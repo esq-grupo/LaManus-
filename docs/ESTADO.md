@@ -8,8 +8,8 @@ Actualizado: 2026-10-13
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
-- **Entrega actual:** C — Estrutura escolar. Revisão 1 REPROVADA (4 achados, todos corrigidos); **a aguardar revisão n.º 2 do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md`).
-- **Depois:** D — Avaliação (só após Codex APROVADO + OK PO na C).
+- **Entrega C:** Codex **APROVADO COM RESSALVA OPERACIONAL** (revisão 2; ressalva tratada com `db:preflight`). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-C.md`).
+- **Depois:** D — Avaliação (só após o OK do PO à Entrega C).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Tarefas da Entrega C
@@ -52,3 +52,4 @@ Actualizado: 2026-10-13
 - Limpeza agendada de sessões/tentativas/resets — por implementar.
 - Recomendações do Codex (Entrega B): limite por IP de melhor esforço; bloqueio por conta como vector de abuso; configurar SMTP antes da produção.
 - Entrega C: D9 decidida pelo PO em 2026-10-14 — só o Admin técnico cria contas (ADR-0002); a confirmar com a escola. Verificação documental da ligação sem anexo (Entrega G).
+- Antes de migrar bases com dados: `npm run db:preflight` (docs/migracoes.md).

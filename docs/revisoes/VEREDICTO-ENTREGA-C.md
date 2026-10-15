@@ -19,3 +19,15 @@ O ficheiro original está no clone local do Codex (sem push); este resumo guarda
 | Validação | Mutações: remover o filtro de atribuições (1 falha), usar UTC (3), remover o índice (2), mover a auditoria para depois do commit (1). A primeira versão da mutação 4 não era fiel (auditoria ainda antes do commit) e não foi detectada; refeita como o código original, foi detectada. | — |
 
 Pedida revisão n.º 2.
+
+
+---
+
+# Revisão n.º 2 — APROVADO COM RESSALVA OPERACIONAL (resumo entregue pelo PO)
+
+Os quatro achados foram corrigidos e os novos testes cobrem os casos reportados. CI verde no commit `1bc650a` (execução 38810347287; `verificar` e `compose`).
+
+**Ressalva:** antes de aplicar a migração do índice de matrículas «Nova» numa base com dados existentes, verificar se há matrículas iniciais duplicadas para algum estudante (o CI aplicou a migração numa base limpa).
+
+## Resposta do construtor (revisão 2)
+**Aceite.** Não alterei a migração (já aplicada no CI). Acrescentei uma **pré-verificação só de leitura**, `npm run db:preflight` (`scripts/preflight-migracoes.ts`), que lista os estudantes com «Nova» duplicada (e as outras condições que as migrações da Entrega C exigem), com código de saída 1 se encontrar problemas. Tem teste de integração que simula uma base antiga com duplicado e confirma que o estudante é indicado. Corre no CI antes de `migrate deploy`. Procedimento em `docs/migracoes.md`; regra para o importador do Excel em `docs/migration-excel.md` §5.

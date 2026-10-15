@@ -19,7 +19,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:preflight": "tsx scripts/preflight-migracoes.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

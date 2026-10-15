@@ -24,3 +24,8 @@ Ainda **não temos** ficheiros de exemplo. Nada será importado sem os analisar 
 - Dados duplicados ou ambíguos nunca são fundidos automaticamente: vão para lista de revisão manual.
 - Importação auditada (`EventoAuditoria`) e executada só por Admin técnico + Secretaria/Direcção.
 - Ficheiros reais nunca entram no Git.
+
+## 5. Regras de matrícula que o importador tem de respeitar (Entrega C)
+- Cada estudante tem **no máximo uma matrícula «Nova»** (a primeira do seu percurso); as dos anos seguintes entram como **«Renovação»**. A base de dados recusa uma segunda «Nova» activa/concluída.
+- No máximo **uma matrícula activa por estudante e ano lectivo**, e a turma tem de pertencer a esse ano.
+- Antes de importar para uma base com dados, correr `npm run db:preflight` e corrigir o que for listado.
