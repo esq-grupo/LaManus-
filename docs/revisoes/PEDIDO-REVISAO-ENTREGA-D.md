@@ -33,5 +33,8 @@ Contas fictícias: `<papel>@exemplo.lamanu.test` (palavra-passe = `SEED_PASSWORD
 5. Páginas: nenhuma lê notas fora de `notas-leitura.ts`/`pautas.ts`.
 6. Peço que procurem **qualquer outro caminho** que devolva notas a estudantes/encarregados.
 
+## CI
+Verde no commit `56c3987`: https://github.com/esq-grupo/LaManus-/actions/runs/38813755295
+
 ## Limitações
 Ver `docs/security.md` §9. Decisões provisórias: D4 (fórmula), validação estrita, quem corrige após publicação (ADR-0003).

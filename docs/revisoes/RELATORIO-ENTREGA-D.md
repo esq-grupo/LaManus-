@@ -19,3 +19,6 @@ Os docentes criam avaliações (com peso) nas suas disciplinas e lançam as nota
 **F. Decisões e pergunta ao PO** — ADR-0003. A pergunta «quem corrige notas já publicadas» fica feita com 3 opções.
 
 **G. Próxima acção** — entregar `docs/revisoes/PEDIDO-REVISAO-ENTREGA-D.md` ao Codex. Paro aqui.
+
+### Adenda — CI no GitHub
+Execução [38813755295](https://github.com/esq-grupo/LaManus-/actions/runs/38813755295), commit `56c3987`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; 157 testes de unidade/integração e 23 e2e). A parte 1 (commit `0a99591`) também passou à primeira: [38812895639](https://github.com/esq-grupo/LaManus-/actions/runs/38812895639).
