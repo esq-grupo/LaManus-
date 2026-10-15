@@ -35,20 +35,22 @@ model Classe {
 }
 
 model Turma {
-  id           String            @id @default(uuid()) @db.Uuid
-  nome         String
-  turno        String
-  classeId     String            @db.Uuid
-  anoLectivoId String            @db.Uuid
-  classe       Classe            @relation(fields: [classeId], references: [id])
-  anoLectivo   AnoLectivo        @relation(fields: [anoLectivoId], references: [id])
-  directorId   String?           @db.Uuid
-  director     Funcionario?      @relation("DirectorDeTurma", fields: [directorId], references: [id])
-  disciplinas  TurmaDisciplina[]
-  matriculas   Matricula[]
-  archivedAt   DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id               String            @id @default(uuid()) @db.Uuid
+  nome             String
+  turno            String
+  classeId         String            @db.Uuid
+  anoLectivoId     String            @db.Uuid
+  classe           Classe            @relation(fields: [classeId], references: [id])
+  anoLectivo       AnoLectivo        @relation(fields: [anoLectivoId], references: [id])
+  directorId       String?           @db.Uuid
+  director         Funcionario?      @relation("DirectorDeTurma", fields: [directorId], references: [id])
+  disciplinas      TurmaDisciplina[]
+  matriculas       Matricula[]
+  archivedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  avaliacaos       Avaliacao[]
+  pautaPublicacaos PautaPublicacao[]
 
   @@unique([anoLectivoId, classeId, nome])
   // Permite a chave estrangeira composta da Matricula (a turma TEM de ser do mesmo ano da matrícula).
@@ -69,6 +71,7 @@ model Estudante {
   estado         EstadoEstudante        @default(ACTIVO)
   matriculas     Matricula[]
   encarregados   EstudanteEncarregado[]
+  notas          Nota[]
   userId         String?                @unique @db.Uuid
   user           User?                  @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
@@ -216,15 +219,19 @@ enum EstadoMatricula {
 }
 
 model Periodo {
-  id           String     @id @default(uuid()) @db.Uuid
-  anoLectivoId String     @db.Uuid
+  id           String            @id @default(uuid()) @db.Uuid
+  anoLectivoId String            @db.Uuid
   ordem        Int
   nome         String
-  inicio       DateTime   @db.Date
-  fim          DateTime   @db.Date
-  anoLectivo   AnoLectivo @relation(fields: [anoLectivoId], references: [id])
+  inicio       DateTime          @db.Date
+  fim          DateTime          @db.Date
+  anoLectivo   AnoLectivo        @relation(fields: [anoLectivoId], references: [id])
+  avaliacoes   Avaliacao[]
+  pautas       PautaPublicacao[]
 
   @@unique([anoLectivoId, ordem])
+  // Permite as chaves estrangeiras compostas de Avaliacao/PautaPublicacao (o período tem de ser do ano da turma).
+  @@unique([id, anoLectivoId])
   @@index([anoLectivoId])
 }
 
@@ -255,8 +262,10 @@ model TurmaDisciplina {
   turma        Turma        @relation(fields: [turmaId], references: [id])
   disciplina   Disciplina   @relation(fields: [disciplinaId], references: [id])
   docente      Funcionario? @relation(fields: [docenteId], references: [id])
+  avaliacoes   Avaliacao[]
 
   @@unique([turmaId, disciplinaId])
+  @@unique([id, turmaId])
   @@index([disciplinaId])
   @@index([docenteId])
 }
@@ -315,4 +324,81 @@ model Matricula {
   @@index([estudanteId])
   @@index([turmaId])
   @@index([anoLectivoId])
+}
+
+// ───────── Entrega D: avaliação ─────────
+
+enum TipoAvaliacao {
+  TESTE
+  TRABALHO
+  EXAME
+  PARTICIPACAO
+  OUTRO
+}
+
+enum EstadoPauta {
+  RASCUNHO
+  VALIDADA
+  PUBLICADA
+}
+
+// turmaId e anoLectivoId são redundantes de propósito: com as chaves compostas a BASE DE DADOS garante que
+// a disciplina é da turma e que o período é do mesmo ano lectivo da turma.
+model Avaliacao {
+  id                String          @id @default(uuid()) @db.Uuid
+  turmaDisciplinaId String          @db.Uuid
+  turmaId           String          @db.Uuid
+  anoLectivoId      String          @db.Uuid
+  periodoId         String          @db.Uuid
+  tipo              TipoAvaliacao
+  nome              String
+  peso              Int
+  data              DateTime        @db.Date
+  createdById       String?         @db.Uuid
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  turmaDisciplina   TurmaDisciplina @relation(fields: [turmaDisciplinaId, turmaId], references: [id, turmaId])
+  turma             Turma           @relation(fields: [turmaId, anoLectivoId], references: [id, anoLectivoId])
+  periodo           Periodo         @relation(fields: [periodoId, anoLectivoId], references: [id, anoLectivoId])
+  notas             Nota[]
+
+  @@index([turmaDisciplinaId])
+  @@index([turmaId, periodoId])
+  @@index([periodoId])
+}
+
+// `valor` em CENTÉSIMAS (14,5 → 1450), 0 a 2000: nunca se calcula com números decimais de vírgula flutuante.
+model Nota {
+  id           String    @id @default(uuid()) @db.Uuid
+  avaliacaoId  String    @db.Uuid
+  estudanteId  String    @db.Uuid
+  valor        Int
+  lancadaPorId String?   @db.Uuid
+  lancadaEm    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  avaliacao    Avaliacao @relation(fields: [avaliacaoId], references: [id])
+  estudante    Estudante @relation(fields: [estudanteId], references: [id])
+
+  @@unique([avaliacaoId, estudanteId])
+  @@index([estudanteId])
+}
+
+// Os portais só leem notas de pautas PUBLICADA.
+model PautaPublicacao {
+  id             String      @id @default(uuid()) @db.Uuid
+  turmaId        String      @db.Uuid
+  periodoId      String      @db.Uuid
+  anoLectivoId   String      @db.Uuid
+  estado         EstadoPauta @default(RASCUNHO)
+  validadaPorId  String?     @db.Uuid
+  validadaEm     DateTime?
+  publicadaPorId String?     @db.Uuid
+  publicadaEm    DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  turma          Turma       @relation(fields: [turmaId, anoLectivoId], references: [id, anoLectivoId])
+  periodo        Periodo     @relation(fields: [periodoId, anoLectivoId], references: [id, anoLectivoId])
+
+  @@unique([turmaId, periodoId])
+  @@index([periodoId])
 }

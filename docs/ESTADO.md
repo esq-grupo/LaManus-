@@ -8,8 +8,9 @@ Actualizado: 2026-10-13
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
-- **Entrega C:** Codex **APROVADO COM RESSALVA OPERACIONAL** (revisão 2; ressalva tratada com `db:preflight`). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-C.md`).
-- **Depois:** D — Avaliação (só após o OK do PO à Entrega C).
+- **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
+- **Entrega actual:** D — Avaliação (em curso).
+- **Depois:** E — Financeiro base (só após Codex APROVADO + OK PO na D).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Tarefas da Entrega C

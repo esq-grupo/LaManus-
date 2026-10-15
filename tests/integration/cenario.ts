@@ -98,7 +98,52 @@ export class Cenario {
     });
   }
 
+  periodos: string[] = [];
+
+  /** Três períodos dentro do ano (1.º: Set–Dez; 2.º: Jan–Abr; 3.º: Abr–Jul). */
+  async periodosDoAno(ano: { id: string; inicio: Date }) {
+    const y = ano.inicio.getUTCFullYear();
+    const defs = [
+      ["1.º período", `${y}-09-01`, `${y}-12-15`],
+      ["2.º período", `${y + 1}-01-10`, `${y + 1}-04-10`],
+      ["3.º período", `${y + 1}-04-20`, `${y + 1}-07-10`],
+    ] as const;
+    const out = [];
+    for (const [i, [nome, ini, fim]] of defs.entries()) {
+      const p = await db.periodo.create({
+        data: {
+          anoLectivoId: ano.id,
+          ordem: i + 1,
+          nome,
+          inicio: new Date(ini),
+          fim: new Date(fim),
+        },
+      });
+      this.periodos.push(p.id);
+      out.push(p);
+    }
+    return out as [(typeof out)[number], (typeof out)[number], (typeof out)[number]];
+  }
+
+  async matricular(estudanteId: string, turmaId: string, anoLectivoId: string) {
+    return db.matricula.create({ data: { estudanteId, turmaId, anoLectivoId, tipo: "NOVA" } });
+  }
+
   async limpar() {
+    // As notas/avaliações/pautas são protegidas por gatilhos; a limpeza dos testes usa o mesmo interruptor controlado.
+    await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT set_config('app.permitir_correcao', 'on', true)`;
+      await tx.nota.deleteMany({
+        where: {
+          OR: [
+            { estudanteId: { in: this.estudantes } },
+            { avaliacao: { anoLectivoId: { in: this.anos } } },
+          ],
+        },
+      });
+      await tx.avaliacao.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
+      await tx.pautaPublicacao.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
+    });
     await db.eventoAuditoria
       .deleteMany({ where: { actorId: { in: this.utilizadores } } })
       .catch(() => undefined);

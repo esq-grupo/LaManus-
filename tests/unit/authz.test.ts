@@ -87,6 +87,11 @@ describe("authz — matriz de permissões (negativos)", () => {
     }
   });
 
+  it("só a Direcção corrige notas de pautas validadas/publicadas", () => {
+    for (const papel of PAPEIS)
+      expect(can(quem(papel), "notas:corrigir"), papel).toBe(papel === "DIRECCAO");
+  });
+
   it("Financeiro propõe estorno mas não aprova; Direcção aprova mas não propõe", () => {
     expect(can(quem("FINANCEIRO"), "estorno:propor")).toBe(true);
     expect(can(quem("FINANCEIRO"), "estorno:aprovar")).toBe(false);
