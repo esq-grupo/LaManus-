@@ -33,3 +33,6 @@ Correcções ao REPROVADO da revisão 1 (2 achados + vectores extra); resposta p
   3. Um teste de integração (`OUTRO docente não cria…`) falhou **uma vez** na suite completa e não voltou a falhar em mais de 8 execuções (isolado e completo). Não consegui reproduzir nem explicar; fica registado como **intermitente por investigar** (`docs/ESTADO.md`).
   4. O `prisma migrate reset` foi recusado pela protecção do Prisma contra acções destrutivas por agentes; não a contornei.
 - CI: ver adenda seguinte após o push.
+
+### Adenda — CI da revisão n.º 2
+Execução [38817168336](https://github.com/esq-grupo/LaManus-/actions/runs/38817168336), commit `5a099d3`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`). No job `compose`, num PostgreSQL criado pelo Docker Compose, o passo «Confirmar que a aplicação NÃO tem poderes de dono» registou: `recusado (correcto)` para `TRUNCATE "Nota"`, `ALTER TABLE "Nota" DISABLE TRIGGER nota_bloqueada`, `SET ROLE lamanus` e `DELETE FROM "EventoAuditoria"`; a leitura normal (`SELECT count(*) FROM "Nota"`) funcionou.

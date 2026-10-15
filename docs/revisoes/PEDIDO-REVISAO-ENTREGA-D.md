@@ -48,4 +48,5 @@ Corrige os 2 achados da revisão 1 (interruptor `set_config`; mover notas/avalia
 - `tests/integration/bd-contorno.test.ts` ataca a BD **com a ligação da aplicação**: `set_config`, mover notas/avaliações, inserir pauta publicada, alterar chaves, `TRUNCATE`, `DISABLE TRIGGER`, `SET ROLE`, chamar a função de correcção com argumentos inválidos.
 - O job `compose` do CI confirma os mesmos limites num PostgreSQL criado pelo Docker Compose.
 - Atenção especial: (1) `prisma/migrations/20261016200000_blindar_pautas/migration.sql` (função `e_dono_das_tabelas`, gatilhos, função `corrigir_nota_publicada`); (2) `docker/db/papeis.sql` + `prisma/grants.sql`; (3) se há **outros caminhos** que a aplicação possa usar para contornar as pautas (peço que procurem, incluindo a função de correcção: aceita o autor como argumento, porque a BD confia na aplicação para identificar a sessão).
+- CI verde no commit `5a099d3`: https://github.com/esq-grupo/LaManus-/actions/runs/38817168336
 - **Limitação operacional:** se em produção a aplicação correr com a ligação do dono, estas protecções deixam de valer (`docs/migracoes.md`).
