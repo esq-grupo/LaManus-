@@ -8,9 +8,10 @@ import {
   criarUtilizador,
   definirEstado,
   listarUtilizadores,
+  contarUtilizadores,
   revogarSessoesDe,
 } from "@/server/modules/utilizadores";
-import { db, criarUser, limparUser, PASSWORD_TESTE, prepararBd } from "./ajuda";
+import { db, dbAdmin, criarUser, limparUser, PASSWORD_TESTE, prepararBd } from "./ajuda";
 
 const criados: string[] = [];
 const principal = async (papeis: Parameters<typeof criarUser>[0]) => {
@@ -83,6 +84,26 @@ describe("gestão de utilizadores — negativos de permissão", () => {
   });
 });
 
+describe("lista de utilizadores — limitada e pesquisável", () => {
+  it("devolve no máximo o limite pedido, filtra por nome/email e conta o total", async () => {
+    const admin = await principal(["ADMIN_TECNICO"]);
+    const alvo = await principal(["DOCENTE"]);
+    const todos = await contarUtilizadores(admin);
+    expect(todos).toBeGreaterThanOrEqual(2);
+    expect((await listarUtilizadores(admin, { limite: 1 })).length).toBe(1);
+    const achados = await listarUtilizadores(admin, { q: alvo.email.toUpperCase() });
+    expect(achados.map((u) => u.email)).toEqual([alvo.email]);
+    expect(await contarUtilizadores(admin, alvo.email)).toBe(1);
+    expect(await listarUtilizadores(admin, { q: "nao-existe-este-texto-xyz" })).toEqual([]);
+    expect((await listarUtilizadores(admin, { limite: 100000 })).length).toBeLessThanOrEqual(200);
+  });
+  it("sem permissão de ver utilizadores é recusado", async () => {
+    await expect(contarUtilizadores(await principal(["DOCENTE"]))).rejects.toBeInstanceOf(
+      ErroAutorizacao,
+    );
+  });
+});
+
 describe("gestão de utilizadores — fluxos permitidos", () => {
   it("cria utilizador sem nunca definir password; audita; email duplicado recusado", async () => {
     const admin = await principal(["ADMIN_TECNICO"]);
@@ -151,15 +172,25 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
 });
 
 describe("auditoria é só de inserção", () => {
-  it("UPDATE, DELETE e TRUNCATE em EventoAuditoria são bloqueados pela base de dados", async () => {
+  it("a aplicação NÃO consegue alterar, apagar nem fazer TRUNCATE de eventos (sem privilégio); nem o dono, por gatilho", async () => {
     const ev = await db.eventoAuditoria.create({ data: { acao: "TESTE", entidade: "Teste" } });
     await expect(
       db.eventoAuditoria.update({ where: { id: ev.id }, data: { acao: "ALTERADO" } }),
-    ).rejects.toThrow(/apenas de inserção/);
+    ).rejects.toThrow(/permission denied/);
     await expect(db.eventoAuditoria.delete({ where: { id: ev.id } })).rejects.toThrow(
-      /apenas de inserção/,
+      /permission denied/,
     );
     await expect(db.$executeRawUnsafe('TRUNCATE TABLE "EventoAuditoria"')).rejects.toThrow(
+      /permission denied/,
+    );
+    // Defesa em profundidade: mesmo o dono é travado pelo gatilho.
+    await expect(
+      dbAdmin.eventoAuditoria.update({ where: { id: ev.id }, data: { acao: "ALTERADO" } }),
+    ).rejects.toThrow(/apenas de inserção/);
+    await expect(dbAdmin.eventoAuditoria.delete({ where: { id: ev.id } })).rejects.toThrow(
+      /apenas de inserção/,
+    );
+    await expect(dbAdmin.$executeRawUnsafe('TRUNCATE TABLE "EventoAuditoria"')).rejects.toThrow(
       /apenas de inserção/,
     );
   });

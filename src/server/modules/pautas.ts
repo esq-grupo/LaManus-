@@ -301,8 +301,10 @@ export async function reabrirPauta(
 }
 
 /**
- * Corrige UMA nota de uma pauta já PUBLICADA — só a Direcção, com motivo obrigatório e auditoria antes/depois.
- * É o único caminho que activa `app.permitir_correcao` (o gatilho da BD bloqueia qualquer outra alteração).
+ * Corrige UMA nota de uma pauta já PUBLICADA — só a Direcção, com motivo obrigatório.
+ * A alteração faz-se pela função privilegiada `corrigir_nota_publicada` da base de dados (única via permitida ao papel da
+ * aplicação): ela própria valida (pauta publicada, valor, motivo) e regista a auditoria antes/depois na MESMA transacção.
+ * Não existe nenhuma variável de sessão que desbloqueie notas: um acesso directo por SQL continua a ser recusado.
  */
 export async function corrigirNota(
   actor: Principal,
@@ -325,7 +327,8 @@ export async function corrigirNota(
   });
   if (!nota) throw new ErroValidacao(["Nota inexistente."]);
   const { avaliacao: a } = nota;
-  await comAuditoria(async (tx) => {
+  await db.$transaction(async (tx) => {
+    // Mensagens claras para os casos normais; a função da BD repete e impõe todas estas regras.
     const estado = await bloquearPauta(
       tx,
       { turmaId: a.turmaId, periodoId: a.periodoId, anoLectivoId: a.anoLectivoId },
@@ -339,19 +342,6 @@ export async function corrigirNota(
       ]);
     const actual = await tx.nota.findUniqueOrThrow({ where: { id: nota.id } });
     if (actual.valor === valor) throw new ErroValidacao(["O valor é igual ao actual."]);
-    await tx.$executeRaw`SELECT set_config('app.permitir_correcao', 'on', true)`;
-    await tx.nota.update({ where: { id: nota.id }, data: { valor, lancadaPorId: actor.id } });
-    return {
-      resultado: undefined,
-      evento: {
-        actorId: actor.id,
-        acao: "NOTA_CORRIGIDA_APOS_PUBLICACAO",
-        entidade: "Nota",
-        entidadeId: nota.id,
-        antes: { valor: actual.valor },
-        depois: { valor, motivo: m, avaliacaoId: a.id, estudanteId: nota.estudanteId },
-        ip,
-      },
-    };
+    await tx.$executeRaw`SELECT corrigir_nota_publicada(${nota.id}::uuid, ${valor}::int, ${actor.id}::uuid, ${m}, ${ip ?? null})`;
   });
 }

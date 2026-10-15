@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Principal, Papel } from "@/server/authz";
-import { db, criarUser, limparUser } from "./ajuda";
+import { db, dbAdmin, criarUser, limparUser } from "./ajuda";
 
 /** Dados isolados por teste (nomes únicos) e limpeza completa no fim. */
 export class Cenario {
@@ -130,10 +130,9 @@ export class Cenario {
   }
 
   async limpar() {
-    // As notas/avaliações/pautas são protegidas por gatilhos; a limpeza dos testes usa o mesmo interruptor controlado.
-    await db.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT set_config('app.permitir_correcao', 'on', true)`;
-      await tx.nota.deleteMany({
+    // As notas/avaliações/pautas são protegidas por gatilhos que só o DONO das tabelas pode contornar: a limpeza usa a ligação de administração.
+    await dbAdmin.$transaction(async (tx) => {
+      await await tx.nota.deleteMany({
         where: {
           OR: [
             { estudanteId: { in: this.estudantes } },
@@ -144,15 +143,15 @@ export class Cenario {
       await tx.avaliacao.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
       await tx.pautaPublicacao.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
     });
-    await db.eventoAuditoria
+    await dbAdmin.eventoAuditoria
       .deleteMany({ where: { actorId: { in: this.utilizadores } } })
       .catch(() => undefined);
-    await db.matricula.deleteMany({
+    await dbAdmin.matricula.deleteMany({
       where: {
         OR: [{ estudanteId: { in: this.estudantes } }, { anoLectivoId: { in: this.anos } }],
       },
     });
-    await db.estudanteEncarregado.deleteMany({
+    await dbAdmin.estudanteEncarregado.deleteMany({
       where: {
         OR: [
           { estudanteId: { in: this.estudantes } },
@@ -160,7 +159,7 @@ export class Cenario {
         ],
       },
     });
-    await db.turmaDisciplina.deleteMany({
+    await dbAdmin.turmaDisciplina.deleteMany({
       where: {
         OR: [
           { turma: { anoLectivoId: { in: this.anos } } },
@@ -168,14 +167,14 @@ export class Cenario {
         ],
       },
     });
-    await db.turma.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
-    await db.periodo.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
-    await db.anoLectivo.deleteMany({ where: { id: { in: this.anos } } });
-    await db.estudante.deleteMany({ where: { id: { in: this.estudantes } } });
-    await db.encarregado.deleteMany({ where: { id: { in: this.encarregados } } });
-    await db.funcionario.deleteMany({ where: { id: { in: this.funcionarios } } });
-    await db.disciplina.deleteMany({ where: { id: { in: this.disciplinas } } });
-    await db.classe.deleteMany({ where: { id: { in: this.classes } } });
+    await dbAdmin.turma.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
+    await dbAdmin.periodo.deleteMany({ where: { anoLectivoId: { in: this.anos } } });
+    await dbAdmin.anoLectivo.deleteMany({ where: { id: { in: this.anos } } });
+    await dbAdmin.estudante.deleteMany({ where: { id: { in: this.estudantes } } });
+    await dbAdmin.encarregado.deleteMany({ where: { id: { in: this.encarregados } } });
+    await dbAdmin.funcionario.deleteMany({ where: { id: { in: this.funcionarios } } });
+    await dbAdmin.disciplina.deleteMany({ where: { id: { in: this.disciplinas } } });
+    await dbAdmin.classe.deleteMany({ where: { id: { in: this.classes } } });
     for (const id of this.utilizadores) await limparUser(id);
   }
 }

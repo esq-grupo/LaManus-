@@ -14,7 +14,7 @@ cp .env.example .env            # valores fictícios de desenvolvimento
 docker compose up -d db         # PostgreSQL 16 (alternativa: Postgres local com as mesmas credenciais)
 npm ci
 npm run db:generate
-npm run db:migrate              # aplica as migrações
+npm run db:deploy               # aplica as migrações (como dono) e os privilégios do papel restrito da aplicação
 npm run db:seed                 # dados FICTÍCIOS
 npm run dev                     # http://localhost:3000
 ```
@@ -28,6 +28,10 @@ npm run dev                     # http://localhost:3000
 | `npm run typecheck`    | TypeScript estrito                                                                   |
 | `npm test`             | Testes unitários/integração (Vitest)                                                 |
 | `npm run test:e2e`     | Testes ponta-a-ponta (Playwright; `npx playwright install chromium` na primeira vez) |
+
+## Base de dados: dois papéis
+
+`ADMIN_DATABASE_URL` (dono: migrações, seed) e `DATABASE_URL` (papel restrito `lamanus_app`, usado pela aplicação). O `docker compose` cria os dois. Ver `docs/migracoes.md`.
 
 ## Regras
 

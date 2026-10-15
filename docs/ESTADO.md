@@ -9,7 +9,7 @@ Actualizado: 2026-10-13
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
-- **Entrega actual:** D — Avaliação. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-D.md`).
+- **Entrega actual:** D — Avaliação. Revisão 1 REPROVADA (2 achados de SQL directo) → corrigida com separação de papéis na BD; **a aguardar revisão n.º 2 do Codex**.
 - **Depois:** E — Financeiro base (só após Codex APROVADO + OK PO na D).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
@@ -18,7 +18,7 @@ Actualizado: 2026-10-13
 - [x] Médias (fórmula D4 provisória: ponderada, 1 casa, meio para cima), em inteiros
 - [x] Pautas: validar → publicar (e reabrir); correcção após publicação com motivo (Direcção)
 - [x] Portais: só notas publicadas (filtro na consulta SQL)
-- [x] Testes: 41 unitários, 116 integração, 23 e2e
+- [x] Testes: 41 unitários, 128 integração, 23 e2e
 
 ## Tarefas da Entrega C (fechada)
 - [x] Anos lectivos, períodos, classes, turmas, disciplinas, funcionários, atribuição de docentes
@@ -62,3 +62,7 @@ Actualizado: 2026-10-13
 - Entrega C: D9 decidida pelo PO em 2026-10-14 — só o Admin técnico cria contas (ADR-0002); a confirmar com a escola. Verificação documental da ligação sem anexo (Entrega G).
 - Antes de migrar bases com dados: `npm run db:preflight` (docs/migracoes.md).
 - Entrega D: fórmula (D4) e validação estrita provisórias; quem corrige notas publicadas: decidido pelo PO em 2026-10-16 (só a Direcção, com motivo) — ADR-0003; a confirmar com a escola.
+- **Intermitente por investigar:** `avaliacao.test.ts › OUTRO docente não cria avaliações…` falhou 1 vez numa suite completa; não reproduzido em mais de 8 execuções.
+- **Operação (obrigatório antes do piloto):** a aplicação tem de correr com o papel `lamanus_app` (`docs/migracoes.md`); com o dono, as protecções por SQL directo não valem.
+- Lista de utilizadores limitada a 50 com pesquisa; falta paginação completa (Entrega F/H).
+- `prisma migrate reset` exige consentimento explícito do PO (protecção do Prisma); não usado.

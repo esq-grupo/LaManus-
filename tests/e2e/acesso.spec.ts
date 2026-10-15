@@ -105,6 +105,8 @@ test("admin técnico: cria utilizador, o convidado define a palavra-passe e entr
   await expect(nova.getByRole("status")).toContainText("Utilizador criado");
 
   // O admin não pode alterar os próprios papéis (botão desactivado na sua linha).
+  // A lista é limitada a 50: encontrar a própria linha pela pesquisa.
+  await page.goto(`/interno/utilizadores?q=${encodeURIComponent(conta("admin.tecnico"))}`);
   const minha = page.getByTestId(`utilizador-${conta("admin.tecnico")}`);
   await expect(minha.getByRole("button", { name: "Guardar papéis" })).toBeDisabled();
   await expect(minha.getByRole("button", { name: "Desactivar" })).toBeDisabled();

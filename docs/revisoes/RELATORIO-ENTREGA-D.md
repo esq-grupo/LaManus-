@@ -22,3 +22,14 @@ Os docentes criam avaliações (com peso) nas suas disciplinas e lançam as nota
 
 ### Adenda — CI no GitHub
 Execução [38813755295](https://github.com/esq-grupo/LaManus-/actions/runs/38813755295), commit `56c3987`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; 157 testes de unidade/integração e 23 e2e). A parte 1 (commit `0a99591`) também passou à primeira: [38812895639](https://github.com/esq-grupo/LaManus-/actions/runs/38812895639).
+
+### Adenda — revisão n.º 2 (2026-10-16)
+Correcções ao REPROVADO da revisão 1 (2 achados + vectores extra); resposta ponto a ponto em `VEREDICTO-ENTREGA-D.md`.
+- Local: 41 unitários + 128 integração + 23 e2e a passar; lint, formatação, tipos e compilação sem erros; todas as migrações aplicam do zero numa base nova.
+- Mutações na BD detectadas pelos testes (4), com as funções repostas e conferidas.
+- **O que correu mal pelo caminho (para transparência):**
+  1. O primeiro gatilho novo partia as notas em rascunho (erro de PL/pgSQL); apanhado pela suite completa e corrigido antes de enviar.
+  2. Um teste ponta-a-ponta do administrador começou a falhar. Primeiro atribuí a falha à carga da máquina — **estava errado** (falhou também isolado). A causa real: a página de utilizadores carregava **todos** os utilizadores (a base local tinha 499, 479 deixados por execuções minhas interrompidas; confirmei que a suite completa **não** deixa lixo, a contagem é igual antes e depois). Isso é um problema real de escalabilidade (a escola terá milhares de contas); a lista passou a estar limitada a 50 com pesquisa. Prova: o mesmo teste passa com a base ainda cheia.
+  3. Um teste de integração (`OUTRO docente não cria…`) falhou **uma vez** na suite completa e não voltou a falhar em mais de 8 execuções (isolado e completo). Não consegui reproduzir nem explicar; fica registado como **intermitente por investigar** (`docs/ESTADO.md`).
+  4. O `prisma migrate reset` foi recusado pela protecção do Prisma contra acções destrutivas por agentes; não a contornei.
+- CI: ver adenda seguinte após o push.

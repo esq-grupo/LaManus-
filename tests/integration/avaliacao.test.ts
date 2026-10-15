@@ -320,7 +320,9 @@ describe("pauta: validar → publicar (e o que fica bloqueado)", () => {
     await expect(
       db.pautaPublicacao.update({ where: chave, data: { estado: "VALIDADA" } }),
     ).rejects.toThrow();
-    await expect(db.pautaPublicacao.delete({ where: chave })).rejects.toThrow(/não se apagam/);
+    await expect(db.pautaPublicacao.delete({ where: chave })).rejects.toThrow(
+      /não se apagam|permission denied/,
+    );
   });
 
   it("validar, publicar e reabrir: só a Direcção (os outros 8 papéis são recusados)", async () => {

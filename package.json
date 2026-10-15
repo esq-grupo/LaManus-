@@ -18,9 +18,10 @@
     "test:e2e": "playwright test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
+    "db:deploy": "prisma migrate deploy && tsx scripts/aplicar-grants.ts",
     "db:seed": "tsx prisma/seed.ts",
-    "db:preflight": "tsx scripts/preflight-migracoes.ts"
+    "db:preflight": "tsx scripts/preflight-migracoes.ts",
+    "db:grants": "tsx scripts/aplicar-grants.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

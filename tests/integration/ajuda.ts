@@ -6,9 +6,16 @@ import { sincronizarPapeisEPermissoes } from "@/server/authz/sincronizar";
 import { hashPassword } from "@/server/auth/password";
 import type { Papel } from "@/server/authz";
 import { db } from "@/server/db";
+import { criarClienteAdmin } from "../../scripts/db-admin";
 
 export const PASSWORD_TESTE = "Teste-Local-9xK2pLm";
 export { db };
+
+/**
+ * Ligação de ADMINISTRAÇÃO (dono das tabelas) — só para preparar/limpar dados e criar estruturas de teste (DDL).
+ * `db` (o código da aplicação) corre com o papel restrito `lamanus_app`: os testes de «SQL directo» usam `db`.
+ */
+export const dbAdmin = criarClienteAdmin();
 
 let sincronizado = false;
 export async function prepararBd() {
@@ -51,10 +58,10 @@ export async function limparUser(id: string) {
  */
 export async function comFalhaDeAuditoria(acao: string, fn: () => Promise<unknown>) {
   const nome = `falha_${acao.toLowerCase()}`;
-  await db.$executeRawUnsafe(
+  await dbAdmin.$executeRawUnsafe(
     `CREATE OR REPLACE FUNCTION ${nome}() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha simulada da auditoria'; END; $$ LANGUAGE plpgsql`,
   );
-  await db.$executeRawUnsafe(
+  await dbAdmin.$executeRawUnsafe(
     `CREATE TRIGGER ${nome} BEFORE INSERT ON "EventoAuditoria" FOR EACH ROW WHEN (NEW.acao = '${acao}') EXECUTE FUNCTION ${nome}()`,
   );
   try {
@@ -67,7 +74,7 @@ export async function comFalhaDeAuditoria(acao: string, fn: () => Promise<unknow
       },
     );
   } finally {
-    await db.$executeRawUnsafe(`DROP TRIGGER ${nome} ON "EventoAuditoria"`);
-    await db.$executeRawUnsafe(`DROP FUNCTION ${nome}()`);
+    await dbAdmin.$executeRawUnsafe(`DROP TRIGGER ${nome} ON "EventoAuditoria"`);
+    await dbAdmin.$executeRawUnsafe(`DROP FUNCTION ${nome}()`);
   }
 }

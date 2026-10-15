@@ -38,3 +38,14 @@ Verde no commit `56c3987`: https://github.com/esq-grupo/LaManus-/actions/runs/38
 
 ## Limitações
 Ver `docs/security.md` §9. Decisões provisórias: D4 (fórmula), validação estrita, quem corrige após publicação (ADR-0003).
+
+## Revisão n.º 2
+Corrige os 2 achados da revisão 1 (interruptor `set_config`; mover notas/avaliações entre pautas). Resposta ponto a ponto em `VEREDICTO-ENTREGA-D.md`; decisão 12 no ADR-0003.
+
+**Mudança estrutural a rever:** a base de dados passa a ter dois papéis (`docker/db/papeis.sql`, `prisma/grants.sql`, `docs/migracoes.md`): `ADMIN_DATABASE_URL` (dono: migrações, seed, limpeza de testes) e `DATABASE_URL` (`lamanus_app`: a aplicação). `src/` nunca usa a ligação de administração.
+
+- Testes locais: **41 unitários + 128 integração + 23 e2e, todos a passar** (a aplicação e os testes correm com o papel restrito; só a limpeza de dados e o DDL de teste usam o dono).
+- `tests/integration/bd-contorno.test.ts` ataca a BD **com a ligação da aplicação**: `set_config`, mover notas/avaliações, inserir pauta publicada, alterar chaves, `TRUNCATE`, `DISABLE TRIGGER`, `SET ROLE`, chamar a função de correcção com argumentos inválidos.
+- O job `compose` do CI confirma os mesmos limites num PostgreSQL criado pelo Docker Compose.
+- Atenção especial: (1) `prisma/migrations/20261016200000_blindar_pautas/migration.sql` (função `e_dono_das_tabelas`, gatilhos, função `corrigir_nota_publicada`); (2) `docker/db/papeis.sql` + `prisma/grants.sql`; (3) se há **outros caminhos** que a aplicação possa usar para contornar as pautas (peço que procurem, incluindo a função de correcção: aceita o autor como argumento, porque a BD confia na aplicação para identificar a sessão).
+- **Limitação operacional:** se em produção a aplicação correr com a ligação do dono, estas protecções deixam de valer (`docs/migracoes.md`).

@@ -47,7 +47,9 @@ export async function procurarProblemas(cliente: Pick<pg.Client, "query">): Prom
 }
 
 async function main() {
-  const cliente = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  const cliente = new pg.Client({
+    connectionString: process.env.ADMIN_DATABASE_URL ?? process.env.DATABASE_URL,
+  });
   await cliente.connect();
   try {
     const problemas = await procurarProblemas(cliente);

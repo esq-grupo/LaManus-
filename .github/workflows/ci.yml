@@ -16,7 +16,9 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U lamanus" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://lamanus:lamanus_ci@localhost:5432/lamanus?schema=public
+      # Dono das tabelas (migrações, seed, limpeza de testes) e papel restrito da aplicação.
+      ADMIN_DATABASE_URL: postgresql://lamanus:lamanus_ci@localhost:5432/lamanus?schema=public
+      DATABASE_URL: postgresql://lamanus_app:lamanus_app_ci@localhost:5432/lamanus?schema=public
       SEED_PASSWORD: Ci-Apenas-Teste-2026
     steps:
       - uses: actions/checkout@v4
@@ -32,18 +34,21 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
+      - name: Criar o papel restrito da aplicação
+        run: PGPASSWORD=lamanus_ci psql -h localhost -U lamanus -d lamanus -v ON_ERROR_STOP=1 -v app_password=lamanus_app_ci -f docker/db/papeis.sql
       - run: npm run db:preflight
-      - run: npx prisma migrate deploy
+      - run: npm run db:deploy
       - run: npm run db:seed
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
-  # Exercita o caminho do README: PostgreSQL via Docker Compose + migração + seed.
+  # Exercita o caminho do README: PostgreSQL via Docker Compose (que cria o papel restrito) + migração + seed.
   compose:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://lamanus:lamanus_dev@localhost:5432/lamanus?schema=public
+      ADMIN_DATABASE_URL: postgresql://lamanus:lamanus_dev@localhost:5432/lamanus?schema=public
+      DATABASE_URL: postgresql://lamanus_app:lamanus_app_dev@localhost:5432/lamanus?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,9 +61,21 @@ jobs:
         run: |
           for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
       - run: npm run db:generate
-      - run: npx prisma migrate deploy
+      - run: npm run db:deploy
       - run: npm run db:seed
       - name: Confirmar dados do seed
         run: docker compose exec -T db psql -U lamanus -d lamanus -tAc 'select count(*) from "Estudante"' | grep -qx 5
+      - name: Confirmar que a aplicação NÃO tem poderes de dono (papel restrito)
+        run: |
+          app() { docker compose exec -T -e PGPASSWORD=lamanus_app_dev db psql -U lamanus_app -d lamanus -v ON_ERROR_STOP=1 -c "$1"; }
+          # Cada comando abaixo TEM de ser recusado; se algum for aceite, o passo falha.
+          for proibido in 'TRUNCATE "Nota"' 'ALTER TABLE "Nota" DISABLE TRIGGER nota_bloqueada' 'SET ROLE lamanus' 'DELETE FROM "EventoAuditoria"'; do
+            if app "$proibido" >/dev/null 2>&1; then
+              echo "ERRO: a aplicação conseguiu executar: $proibido"
+              exit 1
+            fi
+            echo "recusado (correcto): $proibido"
+          done
+          app 'SELECT count(*) FROM "Nota"' >/dev/null
       - if: always()
         run: docker compose down -v

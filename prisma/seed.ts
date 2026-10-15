@@ -7,7 +7,9 @@ import { PAPEIS } from "../src/server/authz/permissoes";
 import { sincronizarPapeisEPermissoes } from "../src/server/authz/sincronizar";
 
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  adapter: new PrismaPg({
+    connectionString: process.env.ADMIN_DATABASE_URL ?? process.env.DATABASE_URL!,
+  }),
 });
 
 async function main() {

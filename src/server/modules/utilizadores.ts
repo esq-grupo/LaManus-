@@ -47,9 +47,32 @@ export const criarUtilizadorSchema = z.object({
 
 const incluirPapeis = { papeis: { include: { role: true } } } as const;
 
-export async function listarUtilizadores(actor: Principal) {
+export const LIMITE_LISTA_UTILIZADORES = 50;
+
+function filtroUtilizadores(q?: string) {
+  const t = (q ?? "").trim().slice(0, 80);
+  return t
+    ? {
+        OR: [
+          { nome: { contains: t, mode: "insensitive" as const } },
+          { email: { contains: t, mode: "insensitive" as const } },
+        ],
+      }
+    : {};
+}
+
+/** Lista limitada (a escola terá milhares de contas de estudantes/encarregados): pesquisa por nome ou email. */
+export async function listarUtilizadores(
+  actor: Principal,
+  filtro: { q?: string; limite?: number } = {},
+) {
   exigir(actor, "utilizadores:ver");
-  const users = await db.user.findMany({ orderBy: { nome: "asc" }, include: incluirPapeis });
+  const users = await db.user.findMany({
+    where: filtroUtilizadores(filtro.q),
+    orderBy: [{ nome: "asc" }, { email: "asc" }],
+    take: Math.min(filtro.limite ?? LIMITE_LISTA_UTILIZADORES, 200),
+    include: incluirPapeis,
+  });
   return users.map((u) => ({
     id: u.id,
     nome: u.nome,
@@ -58,6 +81,11 @@ export async function listarUtilizadores(actor: Principal) {
     ultimoLogin: u.ultimoLogin,
     papeis: u.papeis.map((ur) => ur.role.codigo).filter(ehPapel) as Papel[],
   }));
+}
+
+export async function contarUtilizadores(actor: Principal, q?: string) {
+  exigir(actor, "utilizadores:ver");
+  return db.user.count({ where: filtroUtilizadores(q) });
 }
 
 async function idsDePapeis(codigos: string[]) {

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
 import { procurarProblemas } from "../../scripts/preflight-migracoes";
-import { db, prepararBd } from "./ajuda";
+import { db, dbAdmin, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -26,7 +26,7 @@ describe("pré-verificação das migrações (db:preflight)", () => {
       const t1 = await c.turma(ano1.id, classe.id);
       const t2 = await c.turma(ano2.id, classe.id);
       const e = await c.estudante();
-      await db.$executeRawUnsafe('DROP INDEX "Matricula_uma_nova_por_estudante"');
+      await dbAdmin.$executeRawUnsafe('DROP INDEX "Matricula_uma_nova_por_estudante"');
       try {
         await db.matricula.create({
           data: { estudanteId: e.id, turmaId: t1.id, anoLectivoId: ano1.id, tipo: "NOVA" },
@@ -41,8 +41,8 @@ describe("pré-verificação das migrações (db:preflight)", () => {
           matriculas_nova: 2,
         });
       } finally {
-        await db.matricula.deleteMany({ where: { estudanteId: e.id } });
-        await db.$executeRawUnsafe(
+        await dbAdmin.matricula.deleteMany({ where: { estudanteId: e.id } });
+        await dbAdmin.$executeRawUnsafe(
           `CREATE UNIQUE INDEX "Matricula_uma_nova_por_estudante" ON "Matricula" ("estudanteId") WHERE "tipo" = 'NOVA' AND "estado" IN ('ACTIVA', 'CONCLUIDA')`,
         );
       }

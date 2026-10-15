@@ -1,6 +1,7 @@
 // Dados próprios de um teste e2e de avaliação: turma, disciplina, 2 estudantes, encarregado com conta e ligação verificada.
 // Usa o docente fictício do seed (docente@…) e é limpo no fim — os testes não dependem do estado deixado por outros.
 import { db } from "../../src/server/db";
+import { criarClienteAdmin } from "../../scripts/db-admin";
 import { hashPassword } from "../../src/server/auth/password";
 
 export interface FixtureAvaliacao {
@@ -114,22 +115,34 @@ export async function criarFixtureAvaliacao(senha: string): Promise<FixtureAvali
 }
 
 export async function limparFixtureAvaliacao(ids: IdsFixture): Promise<void> {
-  await db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT set_config('app.permitir_correcao', 'on', true)`;
+  // Notas/pautas publicadas só se apagam com a ligação de administração (dono das tabelas).
+  const admin = criarClienteAdmin();
+  try {
+    await limparComo(admin, ids);
+  } finally {
+    await admin.$disconnect();
+  }
+}
+
+async function limparComo(
+  admin: ReturnType<typeof criarClienteAdmin>,
+  ids: IdsFixture,
+): Promise<void> {
+  await admin.$transaction(async (tx) => {
     await tx.nota.deleteMany({ where: { avaliacao: { anoLectivoId: ids.anoId } } });
     await tx.avaliacao.deleteMany({ where: { anoLectivoId: ids.anoId } });
     await tx.pautaPublicacao.deleteMany({ where: { anoLectivoId: ids.anoId } });
   });
-  await db.matricula.deleteMany({ where: { anoLectivoId: ids.anoId } });
-  await db.estudanteEncarregado.deleteMany({ where: { encarregadoId: ids.encarregadoId } });
-  await db.session.deleteMany({ where: { userId: ids.userId } });
-  await db.encarregado.delete({ where: { id: ids.encarregadoId } });
-  await db.user.delete({ where: { id: ids.userId } });
-  await db.estudante.deleteMany({ where: { id: { in: ids.estudanteIds } } });
-  await db.turmaDisciplina.deleteMany({ where: { turmaId: ids.turmaId } });
-  await db.turma.delete({ where: { id: ids.turmaId } });
-  await db.periodo.delete({ where: { id: ids.periodoId } });
-  await db.anoLectivo.delete({ where: { id: ids.anoId } });
-  await db.disciplina.delete({ where: { id: ids.disciplinaId } });
-  await db.classe.delete({ where: { id: ids.classeId } });
+  await admin.matricula.deleteMany({ where: { anoLectivoId: ids.anoId } });
+  await admin.estudanteEncarregado.deleteMany({ where: { encarregadoId: ids.encarregadoId } });
+  await admin.session.deleteMany({ where: { userId: ids.userId } });
+  await admin.encarregado.delete({ where: { id: ids.encarregadoId } });
+  await admin.user.delete({ where: { id: ids.userId } });
+  await admin.estudante.deleteMany({ where: { id: { in: ids.estudanteIds } } });
+  await admin.turmaDisciplina.deleteMany({ where: { turmaId: ids.turmaId } });
+  await admin.turma.delete({ where: { id: ids.turmaId } });
+  await admin.periodo.delete({ where: { id: ids.periodoId } });
+  await admin.anoLectivo.delete({ where: { id: ids.anoId } });
+  await admin.disciplina.delete({ where: { id: ids.disciplinaId } });
+  await admin.classe.delete({ where: { id: ids.classeId } });
 }

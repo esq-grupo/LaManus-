@@ -139,8 +139,8 @@ Notas de desenho:
 
 ### Garantias
 - **Filtro «PUBLICADA» na própria consulta SQL** (`notas-leitura.ts`): para estudantes e encarregados a nota por publicar nem sai da base de dados. Os portais não recebem o estado da pauta.
-- **Bloqueio na BD**: com a pauta VALIDADA/PUBLICADA nenhuma nota ou avaliação muda por qualquer caminho, excepto o serviço de correcção. Transições inválidas e apagar pautas são rejeitadas por gatilho.
-- **Correcção após publicação**: permissão própria `notas:corrigir` (só Direcção), motivo obrigatório, auditoria antes/depois; o docente não corrige depois de publicar.
+- **Bloqueio na BD**: com a pauta VALIDADA/PUBLICADA nenhuma nota ou avaliação muda pelo papel da aplicação, seja qual for o caminho (testado com a ligação restrita da aplicação), excepto pela função de correcção. Os gatilhos verificam a pauta antiga e a nova e tornam imutáveis as chaves. Uma pauta só nasce em RASCUNHO.
+- **Correcção após publicação**: permissão própria `notas:corrigir` (só Direcção); a alteração faz-se pela função privilegiada `corrigir_nota_publicada` da BD, que exige pauta publicada e motivo e grava a auditoria antes/depois na mesma transacção. **Não existe nenhuma variável de sessão que desbloqueie notas.**
 - **Concorrência**: validar/publicar/reabrir bloqueiam a pauta (`FOR UPDATE`), lançar notas bloqueia-a em modo partilhado (`FOR SHARE`).
 - **Leitura de pautas com escopo**: o Docente só vê as suas colunas; estudantes e encarregados não têm acesso a pautas.
 - Todas as operações gravam alteração e auditoria na mesma transacção.
@@ -153,3 +153,13 @@ Direcção, Secretaria, Qualidade: tudo (com o estado). Docente: só as suas dis
 2. Os portais mostram notas e médias, mas **não há ainda notificação** de pauta publicada (Entrega F) nem boletim em PDF (Entrega G).
 3. Não existem ainda avaliações de recuperação nem média anual (só por período).
 4. Não há anulação/eliminação de avaliações pela interface (só criar e lançar).
+
+### 9.1 Papéis da base de dados (revisão n.º 1 da Entrega D)
+| Papel | Quem usa | Pode |
+|---|---|---|
+| `lamanus` (dono) | Migrações, seed, administração, limpeza de testes (`ADMIN_DATABASE_URL`) | Tudo; é o único que os gatilhos deixam contornar |
+| `lamanus_app` | A aplicação (`DATABASE_URL`) | Ler/escrever dados; **não** desliga gatilhos, não apaga índices, não faz `TRUNCATE`, não assume outro papel, não altera/apaga auditoria nem apaga pautas |
+
+- Os testes `bd-contorno.test.ts` atacam a base de dados **com a ligação da aplicação**: `set_config`, mover notas/avaliações entre pautas, inserir uma pauta já publicada, alterar chaves, `TRUNCATE`, `ALTER TABLE … DISABLE TRIGGER`, `SET ROLE`.
+- O job `compose` do CI confirma, num PostgreSQL criado pelo Docker Compose, que o papel da aplicação é recusado nesses comandos.
+- **Limitação operacional:** se, em produção, a aplicação for configurada com a ligação do dono, estas protecções por SQL directo deixam de valer. O runbook (`docs/migracoes.md`) e o README exigem `DATABASE_URL` com `lamanus_app`.
