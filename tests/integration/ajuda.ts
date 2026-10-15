@@ -44,3 +44,30 @@ export async function limparUser(id: string) {
   await db.session.deleteMany({ where: { userId: id } });
   await db.user.delete({ where: { id } }).catch(() => undefined);
 }
+
+/**
+ * Faz falhar (com um trigger temporário) a inserção de um evento de auditoria de uma acção concreta e verifica que a operação
+ * inteira falha. Serve para provar que a alteração e a auditoria gravam-se juntas ou não se grava nada.
+ */
+export async function comFalhaDeAuditoria(acao: string, fn: () => Promise<unknown>) {
+  const nome = `falha_${acao.toLowerCase()}`;
+  await db.$executeRawUnsafe(
+    `CREATE OR REPLACE FUNCTION ${nome}() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'falha simulada da auditoria'; END; $$ LANGUAGE plpgsql`,
+  );
+  await db.$executeRawUnsafe(
+    `CREATE TRIGGER ${nome} BEFORE INSERT ON "EventoAuditoria" FOR EACH ROW WHEN (NEW.acao = '${acao}') EXECUTE FUNCTION ${nome}()`,
+  );
+  try {
+    await fn().then(
+      () => {
+        throw new Error(`A operação devia ter falhado quando a auditoria de ${acao} falha`);
+      },
+      (e: Error) => {
+        if (e.message.startsWith("A operação devia")) throw e;
+      },
+    );
+  } finally {
+    await db.$executeRawUnsafe(`DROP TRIGGER ${nome} ON "EventoAuditoria"`);
+    await db.$executeRawUnsafe(`DROP FUNCTION ${nome}()`);
+  }
+}

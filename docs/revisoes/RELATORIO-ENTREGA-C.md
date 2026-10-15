@@ -22,3 +22,9 @@ A escola já pode registar anos lectivos, trimestres, classes, turmas, disciplin
 
 ### Adenda — CI no GitHub
 Execução [38471439069](https://github.com/esq-grupo/LaManus-/actions/runs/38471439069), commit `252a0f0`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; 96 testes de unidade/integração e 15 e2e).
+
+### Adenda — revisão n.º 2 (2026-10-15)
+Correcções ao REPROVADO da revisão 1 (4 achados); resposta ponto a ponto em `VEREDICTO-ENTREGA-C.md`.
+- Local: 31 unitários + 79 integração + 17 e2e a passar; lint, formatação, typecheck e build sem erros; suite repetida com dois fusos horários extremos.
+- Mutações detectadas pelos testes (filtro do Docente, UTC em vez de Luanda, índice da «Nova», auditoria depois do commit).
+- CI: ver adenda seguinte após o push.

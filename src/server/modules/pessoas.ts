@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { db } from "@/server/db";
-import { registarAuditoria } from "@/server/audit";
+import { comAuditoria } from "@/server/audit";
 import { can, type Principal } from "@/server/authz";
 import { escopoEstudantes } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao, ehViolacaoUnica } from "@/server/erros";
-import { dataSchema } from "@/lib/datas";
+import { dataSchema, hojeEmLuanda } from "@/lib/datas";
 import { mascararBi, normalizarBi } from "@/lib/mascarar";
 
 function exigir(actor: Principal, p: "estudantes:ver" | "estudantes:editar") {
@@ -46,20 +46,24 @@ const estudanteSchema = z.object({
 export async function criarEstudante(actor: Principal, entrada: unknown, ip?: string | null) {
   exigir(actor, "estudantes:editar");
   const d = analisar(estudanteSchema, entrada);
-  if (d.dataNascimento > new Date())
+  if (d.dataNascimento > hojeEmLuanda())
     throw new ErroValidacao(["A data de nascimento não pode ser futura."]);
   const dados = { ...d, bi: normalizarBi(d.bi) };
   try {
-    const e = await db.estudante.create({ data: dados });
-    await registarAuditoria({
-      actorId: actor.id,
-      acao: "ESTUDANTE_CRIADO",
-      entidade: "Estudante",
-      entidadeId: e.id,
-      depois: paraAuditoria(dados),
-      ip,
+    return await comAuditoria(async (tx) => {
+      const e = await tx.estudante.create({ data: dados });
+      return {
+        resultado: e.id,
+        evento: {
+          actorId: actor.id,
+          acao: "ESTUDANTE_CRIADO",
+          entidade: "Estudante",
+          entidadeId: e.id,
+          depois: paraAuditoria(dados),
+          ip,
+        },
+      };
     });
-    return e.id;
   } catch (e) {
     if (ehViolacaoUnica(e))
       throw new ErroValidacao(["Já existe um estudante com esse n.º de processo ou BI."]);
@@ -84,30 +88,35 @@ export async function actualizarEstudante(
   if (!antes) throw new ErroValidacao(["Estudante inexistente."]);
   const dados = { ...d, bi: normalizarBi(d.bi) };
   try {
-    await db.estudante.update({ where: { id }, data: dados });
+    await comAuditoria(async (tx) => {
+      await tx.estudante.update({ where: { id }, data: dados });
+      return {
+        resultado: undefined,
+        evento: {
+          actorId: actor.id,
+          acao: "ESTUDANTE_ACTUALIZADO",
+          entidade: "Estudante",
+          entidadeId: id,
+          antes: paraAuditoria({
+            nome: antes.nome,
+            bi: antes.bi,
+            contacto: antes.contacto,
+            estado: antes.estado,
+          }),
+          depois: paraAuditoria({
+            nome: dados.nome,
+            bi: dados.bi,
+            contacto: dados.contacto ?? null,
+            estado: dados.estado,
+          }),
+          ip,
+        },
+      };
+    });
   } catch (e) {
     if (ehViolacaoUnica(e)) throw new ErroValidacao(["Já existe um estudante com esse BI."]);
     throw e;
   }
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "ESTUDANTE_ACTUALIZADO",
-    entidade: "Estudante",
-    entidadeId: id,
-    antes: paraAuditoria({
-      nome: antes.nome,
-      bi: antes.bi,
-      contacto: antes.contacto,
-      estado: antes.estado,
-    }),
-    depois: paraAuditoria({
-      nome: dados.nome,
-      bi: dados.bi,
-      contacto: dados.contacto ?? null,
-      estado: dados.estado,
-    }),
-    ip,
-  });
 }
 
 /** Pesquisa por nome, n.º de processo ou BI — SEMPRE limitada ao escopo do utilizador. */
@@ -238,7 +247,7 @@ export async function ligarEncarregado(actor: Principal, entrada: unknown, ip?: 
   if (!(await db.estudante.findUnique({ where: { id: d.estudanteId } })))
     throw new ErroValidacao(["Estudante inexistente."]);
 
-  const resultado = await db.$transaction(async (tx) => {
+  return comAuditoria(async (tx) => {
     let enc = biNorm ? await tx.encarregado.findUnique({ where: { bi: biNorm } }) : null;
     enc ??= await tx.encarregado.create({
       data: { nome: d.nome, bi: biNorm, contacto: d.contacto },
@@ -263,22 +272,23 @@ export async function ligarEncarregado(actor: Principal, entrada: unknown, ip?: 
         autorizacaoActiva: true,
       },
     });
-    return enc.id;
+    return {
+      resultado: enc.id,
+      evento: {
+        actorId: actor.id,
+        acao: "ENCARREGADO_LIGADO",
+        entidade: "EstudanteEncarregado",
+        entidadeId: `${d.estudanteId}:${enc.id}`,
+        depois: {
+          estudanteId: d.estudanteId,
+          encarregadoId: enc.id,
+          parentesco: d.parentesco,
+          verificado: false,
+        },
+        ip,
+      },
+    };
   });
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "ENCARREGADO_LIGADO",
-    entidade: "EstudanteEncarregado",
-    entidadeId: `${d.estudanteId}:${resultado}`,
-    depois: {
-      estudanteId: d.estudanteId,
-      encarregadoId: resultado,
-      parentesco: d.parentesco,
-      verificado: false,
-    },
-    ip,
-  });
-  return resultado;
 }
 
 async function ligacao(estudanteId: string, encarregadoId: string) {
@@ -304,18 +314,23 @@ export async function verificarLigacao(
   exigir(actor, "estudantes:editar");
   const l = await ligacao(estudanteId, encarregadoId);
   if (l.verificado) return;
-  await db.estudanteEncarregado.update({
-    where: { estudanteId_encarregadoId: { estudanteId, encarregadoId } },
-    data: { verificado: true, verificadoPorId: actor.id, verificadoEm: new Date() },
-  });
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "LIGACAO_VERIFICADA",
-    entidade: "EstudanteEncarregado",
-    entidadeId: `${estudanteId}:${encarregadoId}`,
-    antes: { verificado: false },
-    depois: { verificado: true },
-    ip,
+  await comAuditoria(async (tx) => {
+    await tx.estudanteEncarregado.update({
+      where: { estudanteId_encarregadoId: { estudanteId, encarregadoId } },
+      data: { verificado: true, verificadoPorId: actor.id, verificadoEm: new Date() },
+    });
+    return {
+      resultado: undefined,
+      evento: {
+        actorId: actor.id,
+        acao: "LIGACAO_VERIFICADA",
+        entidade: "EstudanteEncarregado",
+        entidadeId: `${estudanteId}:${encarregadoId}`,
+        antes: { verificado: false },
+        depois: { verificado: true },
+        ip,
+      },
+    };
   });
 }
 
@@ -330,18 +345,23 @@ export async function definirAutorizacao(
   exigir(actor, "estudantes:editar");
   const l = await ligacao(estudanteId, encarregadoId);
   if (l.autorizacaoActiva === activa) return;
-  await db.estudanteEncarregado.update({
-    where: { estudanteId_encarregadoId: { estudanteId, encarregadoId } },
-    data: { autorizacaoActiva: activa },
-  });
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: activa ? "AUTORIZACAO_REPOSTA" : "AUTORIZACAO_REVOGADA",
-    entidade: "EstudanteEncarregado",
-    entidadeId: `${estudanteId}:${encarregadoId}`,
-    antes: { autorizacaoActiva: l.autorizacaoActiva },
-    depois: { autorizacaoActiva: activa },
-    ip,
+  await comAuditoria(async (tx) => {
+    await tx.estudanteEncarregado.update({
+      where: { estudanteId_encarregadoId: { estudanteId, encarregadoId } },
+      data: { autorizacaoActiva: activa },
+    });
+    return {
+      resultado: undefined,
+      evento: {
+        actorId: actor.id,
+        acao: activa ? "AUTORIZACAO_REPOSTA" : "AUTORIZACAO_REVOGADA",
+        entidade: "EstudanteEncarregado",
+        entidadeId: `${estudanteId}:${encarregadoId}`,
+        antes: { autorizacaoActiva: l.autorizacaoActiva },
+        depois: { autorizacaoActiva: activa },
+        ip,
+      },
+    };
   });
 }
 
@@ -364,27 +384,32 @@ export async function associarConta(
     ]);
   }
   try {
-    if (alvo.tipo === "encarregado")
-      await db.encarregado.update({
-        where: { id: analisar(uuid, alvo.id) },
-        data: { userId: user.id },
-      });
-    else
-      await db.estudante.update({
-        where: { id: analisar(uuid, alvo.id) },
-        data: { userId: user.id },
-      });
+    await comAuditoria(async (tx) => {
+      if (alvo.tipo === "encarregado")
+        await tx.encarregado.update({
+          where: { id: analisar(uuid, alvo.id) },
+          data: { userId: user.id },
+        });
+      else
+        await tx.estudante.update({
+          where: { id: analisar(uuid, alvo.id) },
+          data: { userId: user.id },
+        });
+      return {
+        resultado: undefined,
+        evento: {
+          actorId: actor.id,
+          acao: "CONTA_ASSOCIADA",
+          entidade: alvo.tipo === "encarregado" ? "Encarregado" : "Estudante",
+          entidadeId: alvo.id,
+          depois: { userId: user.id },
+          ip,
+        },
+      };
+    });
   } catch (e) {
     if (ehViolacaoUnica(e))
       throw new ErroValidacao(["Essa conta já está associada a outra pessoa."]);
     throw e;
   }
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "CONTA_ASSOCIADA",
-    entidade: alvo.tipo === "encarregado" ? "Encarregado" : "Estudante",
-    entidadeId: alvo.id,
-    depois: { userId: user.id },
-    ip,
-  });
 }

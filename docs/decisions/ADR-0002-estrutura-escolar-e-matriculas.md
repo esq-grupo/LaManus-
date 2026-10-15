@@ -19,6 +19,12 @@ A Entrega C introduz as entidades de que dependem notas, finanças e portais. O 
 9. **N.º de processo introduzido pela Secretaria** (não gerado): respeita a numeração actual da escola e a migração do Excel (Entrega H).
 10. **Docente de uma disciplina** tem de ser um Funcionário com conta de papel Docente.
 
+## Correcções da revisão n.º 1 do Codex (2026-10-15)
+11. **Estrutura escolar com escopo**: o Docente só vê as turmas onde lecciona e **só as suas atribuições** (não vê outros docentes, outras turmas nem a lista de funcionários); só quem edita a estrutura recebe a lista de funcionários. Gestão (Direcção, Secretaria, Financeiro, Qualidade, Admin técnico) vê tudo; quem acumula papéis fica com a união.
+12. **Matrícula inicial («Nova») única por estudante** garantida pela BD (índice parcial sobre `tipo = 'NOVA'` e estado ACTIVA/CONCLUIDA). A verificação no código tinha uma janela de corrida entre anos diferentes. A transferência não conflita (a matrícula transferida deixa de contar e a sucessora herda o tipo); uma «Nova» anulada permite recomeçar.
+13. **Datas em `Africa/Luanda`**: a validade da ligação encarregado–estudante e a «data de nascimento futura» usam o dia da escola (`hojeEmLuanda`), nunca o fuso do servidor. Testado com horas de fronteira e com `TZ` extremos.
+14. **Alteração + auditoria na mesma transacção** em todos os serviços da Entrega C (`comAuditoria`): se a auditoria falhar, a alteração não fica gravada. Testado com falha simulada da auditoria.
+
 ## Divergência a decidir pelo PO (D9)
 O guião (D9, provisória) diz «contas de estudante criadas pela Secretaria». Na Entrega B ficou que **só o Administrador técnico cria contas** (princípio do menor privilégio). Na Entrega C a Secretaria **associa** contas já existentes ao estudante/encarregado, mas não as cria. **Decisão do PO (2026-10-14): manter — só o Administrador técnico cria contas**; a Secretaria pede a conta e associa-a depois. Estado de D9: aprovada pelo PO (E-ESQ); a confirmar com a escola.
 

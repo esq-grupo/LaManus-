@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { hojeEmLuanda } from "@/lib/datas";
 import { can, type Principal } from "./index";
 
 /**
@@ -10,10 +11,6 @@ import { can, type Principal } from "./index";
 export type FiltroEstudantes = Prisma.EstudanteWhereInput;
 
 const NADA: FiltroEstudantes = { id: { in: [] } };
-
-/** Hoje como data (00:00 UTC) para comparar com colunas `@db.Date`. */
-const hoje = (agora: Date) =>
-  new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
 
 export function escopoEstudantes(principal: Principal, agora: Date = new Date()): FiltroEstudantes {
   if (!can(principal, "estudantes:ver")) return NADA;
@@ -47,7 +44,7 @@ export function escopoEstudantes(principal: Principal, agora: Date = new Date())
 
   // Encarregado: só educandos com ligação verificada E autorização activa, dentro da validade.
   if (papeis.has("ENCARREGADO")) {
-    const d = hoje(agora);
+    const d = hojeEmLuanda(agora);
     filtros.push({
       encarregados: {
         some: {
@@ -65,4 +62,35 @@ export function escopoEstudantes(principal: Principal, agora: Date = new Date())
 
   if (filtros.length === 0) return NADA;
   return filtros.length === 1 ? filtros[0]! : { OR: filtros };
+}
+
+// ── Estrutura escolar (turmas) ───────────────────────────────────────────────
+
+const PAPEIS_ESTRUTURA_COMPLETA = [
+  "DIRECCAO",
+  "SECRETARIA",
+  "FINANCEIRO",
+  "QUALIDADE",
+  "ADMIN_TECNICO",
+] as const;
+
+/** Quem vê a estrutura de TODAS as turmas (matriz: Direcção, Secretaria, Financeiro, Qualidade, Admin técnico). */
+export function veEstruturaCompleta(principal: Principal): boolean {
+  return (
+    can(principal, "estrutura:ver") &&
+    principal.papeis.some((p) => (PAPEIS_ESTRUTURA_COMPLETA as readonly string[]).includes(p))
+  );
+}
+
+/**
+ * Escopo de turmas. Os papéis de gestão veem todas; o Docente só as turmas onde lecciona alguma disciplina
+ * (matriz: «👁 suas turmas»); sem regra explícita → nada. Quem acumula papéis fica com a união (vê tudo se algum o permitir).
+ */
+export function escopoTurmas(principal: Principal): Prisma.TurmaWhereInput {
+  if (!can(principal, "estrutura:ver")) return { id: { in: [] } };
+  if (veEstruturaCompleta(principal)) return {};
+  if (principal.papeis.includes("DOCENTE")) {
+    return { disciplinas: { some: { docente: { userId: principal.id } } } };
+  }
+  return { id: { in: [] } };
 }

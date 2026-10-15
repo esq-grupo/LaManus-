@@ -8,7 +8,7 @@ Actualizado: 2026-10-13
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
-- **Entrega actual:** C — Estrutura escolar. Implementada; **a aguardar revisão do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md`).
+- **Entrega actual:** C — Estrutura escolar. Revisão 1 REPROVADA (4 achados, todos corrigidos); **a aguardar revisão n.º 2 do Codex** (`docs/revisoes/PEDIDO-REVISAO-ENTREGA-C.md`).
 - **Depois:** D — Avaliação (só após Codex APROVADO + OK PO na C).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
@@ -18,7 +18,7 @@ Actualizado: 2026-10-13
 - [x] Ligação estudante–encarregado com verificação e revogação
 - [x] Matrículas (nova/renovação), transferência de turma auditada, anulação
 - [x] Escopo real: estudante, encarregado, docente
-- [x] Testes: 30 unitários, 66 integração, 15 e2e
+- [x] Testes: 31 unitários, 79 integração, 17 e2e
 
 ## Tarefas da Entrega B (fechada)
 - [x] Modelo User/Role/Permission/Session/PasswordReset/EventoAuditoria + migração (trigger imutável)

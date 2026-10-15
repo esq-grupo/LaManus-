@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ErroAutorizacao } from "@/server/erros";
+import { escopoEstudantes } from "@/server/authz/scope";
 import { PAPEIS, type Papel } from "@/server/authz";
 import {
   meusEducandos,
@@ -8,7 +9,7 @@ import {
   verificarLigacao,
   definirAutorizacao,
 } from "@/server/modules/pessoas";
-import { db, prepararBd } from "./ajuda";
+import { comFalhaDeAuditoria, db, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -112,6 +113,38 @@ describe("escopo — encarregado só vê educandos verificados E com autorizaç�
   });
 });
 
+describe("validade da ligação — achado: depende do fuso horário do servidor", () => {
+  const dia = (v: string) => new Date(`${v}T00:00:00.000Z`);
+  async function vistoEm(agora: Date, validade: { validoAte?: Date; validoDe?: Date }) {
+    const user = await c.principal("ENCARREGADO");
+    const filho = await c.estudante();
+    const enc = await c.encarregado(user.id);
+    await c.ligar(filho.id, enc.id, { verificado: true, ...validade });
+    const r = await db.estudante.findMany({
+      where: { AND: [escopoEstudantes(user, agora), { id: filho.id }] },
+    });
+    return r.length === 1;
+  }
+
+  it("validoAte = D: às 22:30Z de D ainda vale (em Luanda são 23:30 de D); às 23:30Z já expirou (em Luanda já é D+1)", async () => {
+    expect(await vistoEm(new Date("2031-03-10T22:30:00Z"), { validoAte: dia("2031-03-10") })).toBe(
+      true,
+    );
+    expect(await vistoEm(new Date("2031-03-10T23:30:00Z"), { validoAte: dia("2031-03-10") })).toBe(
+      false,
+    );
+  });
+
+  it("validoDe = D+1: às 23:30Z de D já começou (em Luanda já é D+1); às 22:30Z ainda não", async () => {
+    expect(await vistoEm(new Date("2031-03-10T23:30:00Z"), { validoDe: dia("2031-03-11") })).toBe(
+      true,
+    );
+    expect(await vistoEm(new Date("2031-03-10T22:30:00Z"), { validoDe: dia("2031-03-11") })).toBe(
+      false,
+    );
+  });
+});
+
 describe("escopo — estudante, docente e gestão", () => {
   it("estudante vê só o próprio registo", async () => {
     const user = await c.principal("ESTUDANTE");
@@ -206,5 +239,27 @@ describe("papéis sem acesso a estudantes", () => {
       if (pode) await expect(pesquisarEstudantes(u, "")).resolves.toBeDefined();
       else await expect(pesquisarEstudantes(u, "")).rejects.toBeInstanceOf(ErroAutorizacao);
     }
+  });
+});
+
+describe("auditoria atómica — pessoas e ligações", () => {
+  it("se a auditoria falhar, a verificação e a revogação NÃO ficam gravadas", async () => {
+    const sec = await c.principal("SECRETARIA");
+    const filho = await c.estudante();
+    const enc = await c.encarregado();
+    await c.ligar(filho.id, enc.id, { verificado: false });
+    const ligacao = () =>
+      db.estudanteEncarregado.findUniqueOrThrow({
+        where: { estudanteId_encarregadoId: { estudanteId: filho.id, encarregadoId: enc.id } },
+      });
+
+    await comFalhaDeAuditoria("LIGACAO_VERIFICADA", () => verificarLigacao(sec, filho.id, enc.id));
+    expect((await ligacao()).verificado).toBe(false);
+
+    await verificarLigacao(sec, filho.id, enc.id);
+    await comFalhaDeAuditoria("AUTORIZACAO_REVOGADA", () =>
+      definirAutorizacao(sec, filho.id, enc.id, false),
+    );
+    expect((await ligacao()).autorizacaoActiva).toBe(true);
   });
 });

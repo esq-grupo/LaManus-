@@ -125,6 +125,7 @@ Garantias na base de dados (migração `20261013220000_estrutura_escolar`):
 |---|---|
 | Uma matrícula ACTIVA por estudante e ano | Índice único parcial `Matricula_uma_activa_por_ano` |
 | Turma do mesmo ano da matrícula | FK composta `(turmaId, anoLectivoId)` → `Turma(id, anoLectivoId)` |
+| Matrícula inicial («Nova») única por estudante | Índice único parcial `Matricula_uma_nova_por_estudante` (migração `20261015100000_matricula_nova_unica`) |
 | Um só ano lectivo ACTIVO | Índice único parcial `AnoLectivo_um_activo` |
 | Um só encarregado principal por estudante | Índice único parcial `EstudanteEncarregado_um_principal` |
 | Datas coerentes (ano, período, validade) | `CHECK` |

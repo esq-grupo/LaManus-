@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
 import { PAPEIS, type Papel } from "@/server/authz";
 import { anularMatricula, matricular, transferirTurma } from "@/server/modules/matriculas";
-import { db, prepararBd } from "./ajuda";
+import { comFalhaDeAuditoria, db, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -104,6 +104,91 @@ describe("matrículas — regras de negócio", () => {
     await expect(
       matricular(sec, { estudanteId: "não-é-uuid", turmaId: turmaA.id, tipo: "NOVA" }),
     ).rejects.toBeInstanceOf(ErroValidacao);
+  });
+});
+
+describe("matrícula inicial (NOVA) única — achado: NOVA simultâneas em anos diferentes", () => {
+  it("CONCORRÊNCIA: NOVA em 2 anos diferentes ao mesmo tempo → só uma é criada", async () => {
+    const { turmaA, sec, est, classe } = await base();
+    const ano2 = await c.ano("PLANEADO", 1);
+    const turma2 = await c.turma(ano2.id, classe.id, "A");
+    const r = await Promise.allSettled(
+      Array.from({ length: 6 }, (_, i) =>
+        matricular(sec, {
+          estudanteId: est.id,
+          turmaId: i % 2 === 0 ? turmaA.id : turma2.id,
+          tipo: "NOVA",
+        }),
+      ),
+    );
+    expect(r.filter((x) => x.status === "fulfilled")).toHaveLength(1);
+    expect(
+      await db.matricula.count({
+        where: { estudanteId: est.id, tipo: "NOVA", estado: { not: "ANULADA" } },
+      }),
+    ).toBe(1);
+    const falhas = r.filter((x): x is PromiseRejectedResult => x.status === "rejected");
+    expect(falhas.every((f) => f.reason instanceof ErroValidacao)).toBe(true);
+  });
+
+  it("a BASE DE DADOS recusa uma 2.ª matrícula NOVA noutro ano (sem passar pelo serviço)", async () => {
+    const { ano, turmaA, est, classe } = await base();
+    const ano2 = await c.ano("PLANEADO", 1);
+    const turma2 = await c.turma(ano2.id, classe.id, "A");
+    await db.matricula.create({
+      data: { estudanteId: est.id, turmaId: turmaA.id, anoLectivoId: ano.id, tipo: "NOVA" },
+    });
+    await expect(
+      db.matricula.create({
+        data: { estudanteId: est.id, turmaId: turma2.id, anoLectivoId: ano2.id, tipo: "NOVA" },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("a transferência não viola a regra (a NOVA transferida e a sua sucessora coexistem) e uma NOVA anulada deixa recomeçar", async () => {
+    const { turmaA, turmaB, sec, est } = await base();
+    const m = await matricular(sec, { estudanteId: est.id, turmaId: turmaA.id, tipo: "NOVA" });
+    const m2 = await transferirTurma(sec, {
+      matriculaId: m,
+      novaTurmaId: turmaB.id,
+      motivo: "Mudança de turno",
+    });
+    await anularMatricula(sec, m2, "Matrícula feita por engano");
+    await db.matricula.updateMany({
+      where: { estudanteId: est.id, estado: "TRANSFERIDA" },
+      data: { estado: "ANULADA" },
+    });
+    await matricular(sec, { estudanteId: est.id, turmaId: turmaA.id, tipo: "NOVA" });
+  });
+});
+
+describe("auditoria atómica — achado: transferência gravada sem auditoria", () => {
+  it("se a auditoria falhar, a transferência NÃO fica gravada", async () => {
+    const { turmaA, turmaB, sec, est } = await base();
+    const m = await matricular(sec, { estudanteId: est.id, turmaId: turmaA.id, tipo: "NOVA" });
+    await comFalhaDeAuditoria("MATRICULA_TRANSFERIDA", () =>
+      transferirTurma(sec, {
+        matriculaId: m,
+        novaTurmaId: turmaB.id,
+        motivo: "Pedido do encarregado",
+      }),
+    );
+    const todas = await db.matricula.findMany({ where: { estudanteId: est.id } });
+    expect(todas).toHaveLength(1);
+    expect(todas[0]).toMatchObject({ id: m, estado: "ACTIVA", turmaId: turmaA.id });
+  });
+
+  it("se a auditoria falhar, a matrícula e a anulação NÃO ficam gravadas", async () => {
+    const { turmaA, sec, est } = await base();
+    await comFalhaDeAuditoria("MATRICULA_CRIADA", () =>
+      matricular(sec, { estudanteId: est.id, turmaId: turmaA.id, tipo: "NOVA" }),
+    );
+    expect(await db.matricula.count({ where: { estudanteId: est.id } })).toBe(0);
+    const m = await matricular(sec, { estudanteId: est.id, turmaId: turmaA.id, tipo: "NOVA" });
+    await comFalhaDeAuditoria("MATRICULA_ANULADA", () =>
+      anularMatricula(sec, m, "Matrícula feita por engano"),
+    );
+    expect((await db.matricula.findUniqueOrThrow({ where: { id: m } })).estado).toBe("ACTIVA");
   });
 });
 

@@ -112,6 +112,9 @@ Notas de desenho:
 | S3 | Docente só as suas turmas | **Testado** (inclui perda de acesso após transferência do aluno) | `escopo.test.ts` |
 
 ### Outras garantias
+- **Estrutura escolar com escopo (matriz: «Docente 👁 suas turmas»)**: `escopoTurmas`/`listarEstrutura` — o Docente só vê as turmas onde lecciona e as suas atribuições; não recebe outros docentes, outras turmas nem funcionários. Testado (integração e e2e).
+- **Datas**: a validade das autorizações usa o dia de `Africa/Luanda`, não o fuso do servidor.
+- **Auditoria atómica**: alteração e auditoria gravam-se na mesma transacção (se a auditoria falhar, nada fica gravado).
 - `obterEstudante` devolve `null` (404) tanto para inexistente como para fora do escopo — não revela existência.
 - Todas as Server Actions voltam a verificar a permissão no servidor (`exigirPermissao`) e auditam a recusa; a interface só esconde botões.
 - BI mascarado para quem não edita; nunca completo na auditoria.

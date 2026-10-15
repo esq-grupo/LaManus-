@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 // Nunca guardar segredos em eventos de auditoria.
 const CHAVES_PROIBIDAS = /pass|hash|token|secret|segredo/i;
@@ -33,8 +33,18 @@ export interface EventoAuditoriaInput {
   ip?: string | null;
 }
 
-export async function registarAuditoria(e: EventoAuditoriaInput): Promise<void> {
-  await db.eventoAuditoria.create({
+/** Cliente mínimo necessário: aceita o `db` normal ou o cliente de uma transacção (`tx`). */
+export type ClienteAuditoria = { eventoAuditoria: PrismaClient["eventoAuditoria"] };
+
+/**
+ * Regista o evento. Para alterações críticas passe o `tx` da transacção que faz a alteração: assim a alteração e
+ * a auditoria gravam-se JUNTAS ou não se grava nenhuma (nunca fica uma alteração sem rasto).
+ */
+export async function registarAuditoria(
+  e: EventoAuditoriaInput,
+  cliente: ClienteAuditoria = db,
+): Promise<void> {
+  await cliente.eventoAuditoria.create({
     data: {
       actorId: e.actorId ?? null,
       acao: e.acao,
@@ -44,5 +54,19 @@ export async function registarAuditoria(e: EventoAuditoriaInput): Promise<void> 
       depois: sanitizar(e.depois),
       ip: e.ip ?? null,
     },
+  });
+}
+
+/**
+ * Executa uma alteração e a sua auditoria na MESMA transacção: ou ficam as duas gravadas, ou nenhuma.
+ * `fn` recebe o cliente da transacção e devolve o resultado e o evento a registar.
+ */
+export async function comAuditoria<T>(
+  fn: (tx: Prisma.TransactionClient) => Promise<{ resultado: T; evento: EventoAuditoriaInput }>,
+): Promise<T> {
+  return db.$transaction(async (tx) => {
+    const { resultado, evento } = await fn(tx);
+    await registarAuditoria(evento, tx);
+    return resultado;
   });
 }

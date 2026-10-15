@@ -146,6 +146,25 @@ test("financeiro e docente consultam a estrutura/estudantes mas sem formulários
   await expect(mensagem(page)).toHaveCount(0);
 });
 
+test("docente vê só a estrutura das turmas onde lecciona (não vê outras turmas, outros docentes nem formulários)", async ({
+  page,
+}) => {
+  await entrarOk(page, conta("docente"));
+  await page.goto("/interno/estrutura");
+  await expect(page.getByRole("heading", { name: "Estrutura escolar" })).toBeVisible();
+  await expect(page.getByTestId("turma-7.ª classe A")).toBeVisible();
+  await expect(page.getByTestId("turma-7.ª classe B")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Criar turma" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Criar funcionário" })).toHaveCount(0);
+});
+
+test("direcção vê todas as turmas da estrutura", async ({ page }) => {
+  await entrarOk(page, conta("direccao"));
+  await page.goto("/interno/estrutura");
+  await expect(page.getByTestId("turma-7.ª classe A")).toBeVisible();
+  await expect(page.getByTestId("turma-7.ª classe B")).toBeVisible();
+});
+
 test("secretaria cria um ano lectivo e uma classe; duplicados são recusados", async ({ page }) => {
   const s = Date.now().toString().slice(-6);
   await entrarOk(page, conta("secretaria"));

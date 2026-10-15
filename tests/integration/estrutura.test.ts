@@ -18,7 +18,7 @@ import {
   criarEstudante,
   ligarEncarregado,
 } from "@/server/modules/pessoas";
-import { db, prepararBd } from "./ajuda";
+import { comFalhaDeAuditoria, db, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -170,6 +170,87 @@ describe("estrutura escolar", () => {
   });
 });
 
+describe("âmbito da estrutura por papel (achado: Docente via estrutura de todas as turmas)", () => {
+  async function cenarioDocente() {
+    const docente = await c.principal("DOCENTE");
+    const outro = await c.principal("DOCENTE");
+    const fDocente = await c.funcionario(docente.id);
+    const fOutro = await c.funcionario(outro.id);
+    const ano = await c.ano();
+    const classe = await c.classe();
+    const minha = await c.turma(ano.id, classe.id, "A");
+    const outra = await c.turma(ano.id, classe.id, "B");
+    const semDocente = await c.turma(ano.id, classe.id, "C");
+    const mat = await c.disciplina();
+    const port = await c.disciplina();
+    const alheia = await c.disciplina();
+    await db.turmaDisciplina.create({
+      data: { turmaId: minha.id, disciplinaId: mat.id, docenteId: fDocente.id },
+    });
+    await db.turmaDisciplina.create({
+      data: { turmaId: minha.id, disciplinaId: port.id, docenteId: fOutro.id },
+    });
+    await db.turmaDisciplina.create({
+      data: { turmaId: outra.id, disciplinaId: alheia.id, docenteId: fOutro.id },
+    });
+    return { docente, outro, fDocente, fOutro, ano, minha, outra, semDocente, mat, port, alheia };
+  }
+
+  it("Docente só vê as turmas onde lecciona, só as suas atribuições, e nunca a lista de funcionários", async () => {
+    const x = await cenarioDocente();
+    const r = await listarEstrutura(x.docente);
+    const turmasDoTeste = r.turmas.filter((t) =>
+      [x.minha.id, x.outra.id, x.semDocente.id].includes(t.id),
+    );
+    expect(turmasDoTeste.map((t) => t.id)).toEqual([x.minha.id]);
+    // Todas as turmas visíveis são dele (nenhuma de outros docentes aparece, em qualquer ano).
+    expect(r.turmas.every((t) => t.disciplinas.some((d) => d.docenteId === x.fDocente.id))).toBe(
+      true,
+    );
+    // Dentro da sua turma só vê as SUAS atribuições (não a de outro docente).
+    const minha = r.turmas.find((t) => t.id === x.minha.id)!;
+    expect(minha.disciplinas.map((d) => d.disciplinaId)).toEqual([x.mat.id]);
+    expect(JSON.stringify(r)).not.toContain(x.fOutro.id);
+    // Sem lista de funcionários e sem disciplinas alheias.
+    expect(r.funcionarios).toEqual([]);
+    expect(r.disciplinas.map((d) => d.id)).not.toContain(x.alheia.id);
+    expect(r.disciplinas.map((d) => d.id)).not.toContain(x.port.id);
+  });
+
+  it("Docente sem atribuições não vê nenhuma turma", async () => {
+    const semNada = await c.principal("DOCENTE");
+    await c.funcionario(semNada.id);
+    expect((await listarEstrutura(semNada)).turmas).toEqual([]);
+  });
+
+  it("Direcção, Secretaria, Admin técnico, Qualidade e Financeiro continuam a ver todas as turmas; só quem edita vê funcionários", async () => {
+    const x = await cenarioDocente();
+    for (const papel of [
+      "DIRECCAO",
+      "SECRETARIA",
+      "ADMIN_TECNICO",
+      "QUALIDADE",
+      "FINANCEIRO",
+    ] as const) {
+      const u = await c.principal(papel);
+      const r = await listarEstrutura(u);
+      const ids = r.turmas.map((t) => t.id);
+      expect(
+        [x.minha.id, x.outra.id, x.semDocente.id].every((id) => ids.includes(id)),
+        papel,
+      ).toBe(true);
+      expect(r.funcionarios.length > 0, papel).toBe(can(u, "estrutura:editar"));
+    }
+  });
+
+  it("quem é Docente E Direcção (união de papéis) vê tudo", async () => {
+    const x = await cenarioDocente();
+    const misto = await c.principal("DOCENTE", "DIRECCAO");
+    const ids = (await listarEstrutura(misto)).turmas.map((t) => t.id);
+    expect([x.minha.id, x.outra.id, x.semDocente.id].every((id) => ids.includes(id))).toBe(true);
+  });
+});
+
 describe("estudantes e encarregados", () => {
   it("n.º de processo e BI únicos; BI normalizado; BI nunca completo na auditoria", async () => {
     const sec = await c.principal("SECRETARIA");
@@ -316,5 +397,36 @@ describe("estudantes e encarregados", () => {
     await expect(
       associarConta(sec, { tipo: "encarregado", id: enc2.id }, user.email),
     ).rejects.toThrow(/já está associada/);
+  });
+});
+
+describe("auditoria atómica — estrutura e estudantes", () => {
+  it("se a auditoria falhar, nada fica gravado (ano lectivo, estudante, atribuição de docente)", async () => {
+    const sec = await c.principal("SECRETARIA");
+    const nome = `Atomico-${c.sufixo}`;
+    await comFalhaDeAuditoria("ANO_LECTIVO_CRIADO", () =>
+      criarAnoLectivo(sec, { nome, inicio: "2500-09-01", fim: "2501-07-15" }),
+    );
+    expect(await db.anoLectivo.count({ where: { nome } })).toBe(0);
+
+    const proc = `AT-${c.sufixo}`;
+    await comFalhaDeAuditoria("ESTUDANTE_CRIADO", () =>
+      criarEstudante(sec, {
+        numeroProcesso: proc,
+        nome: "Nome Completo Teste",
+        dataNascimento: "2012-03-04",
+      }),
+    );
+    expect(await db.estudante.count({ where: { numeroProcesso: proc } })).toBe(0);
+
+    const doc = await c.principal("DOCENTE");
+    const f = await c.funcionario(doc.id);
+    const ano = await c.ano();
+    const turma = await c.turma(ano.id, (await c.classe()).id);
+    const disc = await c.disciplina();
+    await comFalhaDeAuditoria("DOCENTE_ATRIBUIDO", () =>
+      atribuirDocente(sec, { turmaId: turma.id, disciplinaId: disc.id, docenteId: f.id }),
+    );
+    expect(await db.turmaDisciplina.count({ where: { turmaId: turma.id } })).toBe(0);
   });
 });

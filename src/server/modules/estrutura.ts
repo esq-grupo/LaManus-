@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { db } from "@/server/db";
-import { registarAuditoria } from "@/server/audit";
+import { comAuditoria } from "@/server/audit";
 import { can, type Principal } from "@/server/authz";
+import { escopoTurmas, veEstruturaCompleta } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao, ehViolacaoUnica } from "@/server/erros";
 import { dataSchema } from "@/lib/datas";
 
@@ -28,26 +29,49 @@ async function comUnicidade<T>(fn: () => Promise<T>, mensagem: string): Promise<
   }
 }
 
+/**
+ * Leitura da estrutura, SEMPRE limitada ao escopo do utilizador:
+ *  - gestão: tudo; só quem edita recebe a lista de funcionários (necessária para os formulários);
+ *  - Docente: apenas as turmas onde lecciona e apenas as SUAS atribuições (não vê outros docentes nem outras turmas).
+ */
 export async function listarEstrutura(actor: Principal) {
   exigir(actor, "estrutura:ver");
-  const [anos, classes, disciplinas, funcionarios, turmas] = await Promise.all([
+  const completa = veEstruturaCompleta(actor);
+  const soAsMinhas = completa ? {} : { docente: { userId: actor.id } };
+  const turmas = await db.turma.findMany({
+    where: { AND: [{ archivedAt: null }, escopoTurmas(actor)] },
+    orderBy: [{ anoLectivo: { inicio: "desc" } }, { classe: { ordem: "asc" } }, { nome: "asc" }],
+    include: {
+      classe: true,
+      anoLectivo: true,
+      director: completa,
+      disciplinas: { where: soAsMinhas, include: { disciplina: true, docente: completa } },
+    },
+  });
+  const [anos, classes, disciplinas, funcionarios] = await Promise.all([
     db.anoLectivo.findMany({
       orderBy: { inicio: "desc" },
       include: { periodos: { orderBy: { ordem: "asc" } } },
     }),
-    db.classe.findMany({ orderBy: { ordem: "asc" } }),
-    db.disciplina.findMany({ where: { archivedAt: null }, orderBy: { nome: "asc" } }),
-    db.funcionario.findMany({ where: { archivedAt: null }, orderBy: { nome: "asc" } }),
-    db.turma.findMany({
-      where: { archivedAt: null },
-      orderBy: [{ anoLectivo: { inicio: "desc" } }, { classe: { ordem: "asc" } }, { nome: "asc" }],
-      include: {
-        classe: true,
-        anoLectivo: true,
-        director: true,
-        disciplinas: { include: { disciplina: true, docente: true } },
-      },
-    }),
+    completa
+      ? db.classe.findMany({ orderBy: { ordem: "asc" } })
+      : db.classe.findMany({
+          where: { id: { in: [...new Set(turmas.map((t) => t.classeId))] } },
+          orderBy: { ordem: "asc" },
+        }),
+    completa
+      ? db.disciplina.findMany({ where: { archivedAt: null }, orderBy: { nome: "asc" } })
+      : db.disciplina.findMany({
+          where: {
+            id: {
+              in: [...new Set(turmas.flatMap((t) => t.disciplinas.map((d) => d.disciplinaId)))],
+            },
+          },
+          orderBy: { nome: "asc" },
+        }),
+    can(actor, "estrutura:editar")
+      ? db.funcionario.findMany({ where: { archivedAt: null }, orderBy: { nome: "asc" } })
+      : Promise.resolve([]),
   ]);
   return { anos, classes, disciplinas, funcionarios, turmas };
 }
@@ -66,17 +90,23 @@ export async function criarAnoLectivo(actor: Principal, entrada: unknown, ip?: s
   if (d.fim <= d.inicio)
     throw new ErroValidacao(["A data de fim tem de ser posterior à de início."]);
   const ano = await comUnicidade(
-    () => db.anoLectivo.create({ data: { ...d, estado: "PLANEADO" } }),
+    () =>
+      comAuditoria(async (tx) => {
+        const ano = await tx.anoLectivo.create({ data: { ...d, estado: "PLANEADO" } });
+        return {
+          resultado: ano,
+          evento: {
+            actorId: actor.id,
+            acao: "ANO_LECTIVO_CRIADO",
+            entidade: "AnoLectivo",
+            entidadeId: ano.id,
+            depois: d,
+            ip,
+          },
+        };
+      }),
     "Já existe um ano lectivo com esse nome.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "ANO_LECTIVO_CRIADO",
-    entidade: "AnoLectivo",
-    entidadeId: ano.id,
-    depois: d,
-    ip,
-  });
   return ano.id;
 }
 
@@ -94,18 +124,24 @@ export async function mudarEstadoAnoLectivo(
   if (estado === "FECHADO" && ano.estado !== "ACTIVO")
     throw new ErroValidacao(["Só um ano ACTIVO pode ser fechado."]);
   await comUnicidade(
-    () => db.anoLectivo.update({ where: { id }, data: { estado } }),
+    () =>
+      comAuditoria(async (tx) => {
+        await tx.anoLectivo.update({ where: { id }, data: { estado } });
+        return {
+          resultado: undefined,
+          evento: {
+            actorId: actor.id,
+            acao: "ANO_LECTIVO_ESTADO",
+            entidade: "AnoLectivo",
+            entidadeId: id,
+            antes: { estado: ano.estado },
+            depois: { estado },
+            ip,
+          },
+        };
+      }),
     "Já existe um ano lectivo activo. Feche-o antes de activar outro.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "ANO_LECTIVO_ESTADO",
-    entidade: "AnoLectivo",
-    entidadeId: id,
-    antes: { estado: ano.estado },
-    depois: { estado },
-    ip,
-  });
 }
 
 const periodoSchema = z.object({
@@ -127,17 +163,23 @@ export async function criarPeriodo(actor: Principal, entrada: unknown, ip?: stri
   if (d.inicio < ano.inicio || d.fim > ano.fim)
     throw new ErroValidacao(["O período tem de estar dentro do ano lectivo."]);
   const p = await comUnicidade(
-    () => db.periodo.create({ data: d }),
+    () =>
+      comAuditoria(async (tx) => {
+        const p = await tx.periodo.create({ data: d });
+        return {
+          resultado: p,
+          evento: {
+            actorId: actor.id,
+            acao: "PERIODO_CRIADO",
+            entidade: "Periodo",
+            entidadeId: p.id,
+            depois: d,
+            ip,
+          },
+        };
+      }),
     "Já existe um período com essa ordem neste ano.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "PERIODO_CRIADO",
-    entidade: "Periodo",
-    entidadeId: p.id,
-    depois: d,
-    ip,
-  });
   return p.id;
 }
 
@@ -153,17 +195,23 @@ export async function criarClasse(actor: Principal, entrada: unknown, ip?: strin
     entrada,
   );
   const c = await comUnicidade(
-    () => db.classe.create({ data: d }),
+    () =>
+      comAuditoria(async (tx) => {
+        const c = await tx.classe.create({ data: d });
+        return {
+          resultado: c,
+          evento: {
+            actorId: actor.id,
+            acao: "CLASSE_CRIADA",
+            entidade: "Classe",
+            entidadeId: c.id,
+            depois: d,
+            ip,
+          },
+        };
+      }),
     "Já existe uma classe com esse nome ou ordem.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "CLASSE_CRIADA",
-    entidade: "Classe",
-    entidadeId: c.id,
-    depois: d,
-    ip,
-  });
   return c.id;
 }
 
@@ -171,17 +219,23 @@ export async function criarDisciplina(actor: Principal, entrada: unknown, ip?: s
   exigir(actor, "estrutura:editar");
   const d = analisar(z.object({ nome: texto(2, 80, "Indique o nome da disciplina.") }), entrada);
   const x = await comUnicidade(
-    () => db.disciplina.create({ data: d }),
+    () =>
+      comAuditoria(async (tx) => {
+        const x = await tx.disciplina.create({ data: d });
+        return {
+          resultado: x,
+          evento: {
+            actorId: actor.id,
+            acao: "DISCIPLINA_CRIADA",
+            entidade: "Disciplina",
+            entidadeId: x.id,
+            depois: d,
+            ip,
+          },
+        };
+      }),
     "Já existe uma disciplina com esse nome.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "DISCIPLINA_CRIADA",
-    entidade: "Disciplina",
-    entidadeId: x.id,
-    depois: d,
-    ip,
-  });
   return x.id;
 }
 
@@ -204,17 +258,23 @@ export async function criarTurma(actor: Principal, entrada: unknown, ip?: string
   if (d.directorId && !(await db.funcionario.findUnique({ where: { id: d.directorId } })))
     throw new ErroValidacao(["Director de turma inexistente."]);
   const t = await comUnicidade(
-    () => db.turma.create({ data: d }),
+    () =>
+      comAuditoria(async (tx) => {
+        const t = await tx.turma.create({ data: d });
+        return {
+          resultado: t,
+          evento: {
+            actorId: actor.id,
+            acao: "TURMA_CRIADA",
+            entidade: "Turma",
+            entidadeId: t.id,
+            depois: d,
+            ip,
+          },
+        };
+      }),
     "Já existe uma turma com esse nome nesta classe e ano.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "TURMA_CRIADA",
-    entidade: "Turma",
-    entidadeId: t.id,
-    depois: d,
-    ip,
-  });
   return t.id;
 }
 
@@ -245,17 +305,23 @@ export async function criarFuncionario(actor: Principal, entrada: unknown, ip?: 
     userId = user.id;
   }
   const f = await comUnicidade(
-    () => db.funcionario.create({ data: { nome: d.nome, cargo: d.cargo, userId } }),
+    () =>
+      comAuditoria(async (tx) => {
+        const f = await tx.funcionario.create({ data: { nome: d.nome, cargo: d.cargo, userId } });
+        return {
+          resultado: f,
+          evento: {
+            actorId: actor.id,
+            acao: "FUNCIONARIO_CRIADO",
+            entidade: "Funcionario",
+            entidadeId: f.id,
+            depois: { nome: d.nome, cargo: d.cargo, contaAssociada: Boolean(userId) },
+            ip,
+          },
+        };
+      }),
     "Essa conta já está associada a outro funcionário.",
   );
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "FUNCIONARIO_CRIADO",
-    entidade: "Funcionario",
-    entidadeId: f.id,
-    depois: { nome: d.nome, cargo: d.cargo, contaAssociada: Boolean(userId) },
-    ip,
-  });
   return f.id;
 }
 
@@ -285,18 +351,23 @@ export async function atribuirDocente(actor: Principal, entrada: unknown, ip?: s
   const antes = await db.turmaDisciplina.findUnique({
     where: { turmaId_disciplinaId: { turmaId: d.turmaId, disciplinaId: d.disciplinaId } },
   });
-  const td = await db.turmaDisciplina.upsert({
-    where: { turmaId_disciplinaId: { turmaId: d.turmaId, disciplinaId: d.disciplinaId } },
-    update: { docenteId: d.docenteId },
-    create: d,
-  });
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "DOCENTE_ATRIBUIDO",
-    entidade: "TurmaDisciplina",
-    entidadeId: td.id,
-    antes: antes ? { docenteId: antes.docenteId } : undefined,
-    depois: d,
-    ip,
+  await comAuditoria(async (tx) => {
+    const td = await tx.turmaDisciplina.upsert({
+      where: { turmaId_disciplinaId: { turmaId: d.turmaId, disciplinaId: d.disciplinaId } },
+      update: { docenteId: d.docenteId },
+      create: d,
+    });
+    return {
+      resultado: undefined,
+      evento: {
+        actorId: actor.id,
+        acao: "DOCENTE_ATRIBUIDO",
+        entidade: "TurmaDisciplina",
+        entidadeId: td.id,
+        antes: antes ? { docenteId: antes.docenteId } : undefined,
+        depois: d,
+        ip,
+      },
+    };
   });
 }

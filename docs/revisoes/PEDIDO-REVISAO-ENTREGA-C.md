@@ -33,3 +33,10 @@ Contas fictícias: `<papel>@exemplo.lamanu.test` (palavra-passe = `SEED_PASSWORD
 
 ## Limitações
 Ver `docs/security.md` §8. O encarregado só vê nome e n.º de processo (notas e finanças nas Entregas D–F). CI verde no commit `252a0f0`: https://github.com/esq-grupo/LaManus-/actions/runs/38471439069
+
+## Revisão n.º 2
+Corrige os 4 achados da revisão 1 (Docente via estrutura de todas as turmas; NOVA simultâneas em anos diferentes; validade dependente do fuso; transferência sem auditoria). Resposta ponto a ponto em `VEREDICTO-ENTREGA-C.md` e decisões 11–14 no ADR-0002.
+- Testes locais: **31 unitários + 79 integração + 17 e2e, todos a passar**; a suite também passa com `TZ=America/Los_Angeles` e `TZ=Pacific/Kiritimati`.
+- Cada achado foi reproduzido com um teste que falhava antes da correcção; as correcções foram validadas por mutação.
+- Atenção especial: `src/server/authz/scope.ts` (`escopoTurmas`), `modules/estrutura.ts` (`listarEstrutura`), migração `20261015100000_matricula_nova_unica`, `lib/datas.ts` (`hojeEmLuanda`), `audit/index.ts` (`comAuditoria`) e `tests/integration/ajuda.ts` (`comFalhaDeAuditoria`).
+- Pedido: rever também outros pontos onde o escopo por papel possa estar mais largo do que a matriz (`docs/security.md` §3).

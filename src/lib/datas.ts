@@ -18,3 +18,19 @@ export function formatarData(d: Date | null | undefined): string {
   const [a, m, dia] = d.toISOString().slice(0, 10).split("-");
   return `${dia}/${m}/${a}`;
 }
+
+const FUSO_ESCOLA = "Africa/Luanda";
+const formatoLuanda = new Intl.DateTimeFormat("en-CA", {
+  timeZone: FUSO_ESCOLA,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/**
+ * A data de HOJE em Africa/Luanda (00:00 UTC desse dia, para comparar com colunas `@db.Date`).
+ * Nunca depende do fuso horário do servidor: validade de autorizações e "data futura" usam sempre o dia da escola.
+ */
+export function hojeEmLuanda(agora: Date = new Date()): Date {
+  return new Date(`${formatoLuanda.format(agora)}T00:00:00.000Z`);
+}
