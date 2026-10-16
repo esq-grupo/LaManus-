@@ -66,3 +66,4 @@ Actualizado: 2026-10-13
 - **Operação (obrigatório antes do piloto):** a aplicação tem de correr com o papel `lamanus_app` (`docs/migracoes.md`); com o dono, as protecções por SQL directo não valem.
 - Lista de utilizadores limitada a 50 com pesquisa; falta paginação completa (Entrega F/H).
 - `prisma migrate reset` exige consentimento explícito do PO (protecção do Prisma); não usado.
+- **Decisão do PO (2026-10-16):** a configuração dos dois papéis da base de dados no servidor da escola fica para o plano de deploy (Entrega H); o procedimento já está em `docs/migracoes.md`. Pendente para a Entrega H: criar `lamanus_app`, configurar `ADMIN_DATABASE_URL`/`DATABASE_URL` e correr a verificação rápida.
