@@ -7,11 +7,10 @@ import {
   listarPautas,
   obterPauta,
   publicarPauta,
-  corrigirNota,
   reabrirPauta,
   validarPauta,
 } from "@/server/modules/pautas";
-import { db, prepararBd } from "./ajuda";
+import { corrigirComSessao, db, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -161,7 +160,7 @@ describe("NOTA NÃO PUBLICADA NUNCA SAI PARA OS PORTAIS (critério de aceitaçã
     const nota = await db.nota.findFirstOrThrow({
       where: { estudanteId: x.est.id, valor: V_PUBLICADA },
     });
-    await corrigirNota(x.direccao, nota.id, "16", "Erro de digitação do docente");
+    await corrigirComSessao(x.direccao, nota.id, "16", "Erro de digitação do docente");
     const t = textoDe(await notasDoEstudante(x.userEst, x.est.id));
     expect(t).toContain("1600");
     expect(t).not.toContain(String(V_PUBLICADA));

@@ -6,6 +6,9 @@ import { sincronizarPapeisEPermissoes } from "@/server/authz/sincronizar";
 import { hashPassword } from "@/server/auth/password";
 import type { Papel } from "@/server/authz";
 import { db } from "@/server/db";
+import { iniciarSessao } from "@/server/auth/login";
+import { corrigirNota } from "@/server/modules/pautas";
+import type { Principal } from "@/server/authz";
 import { criarClienteAdmin } from "../../scripts/db-admin";
 
 export const PASSWORD_TESTE = "Teste-Local-9xK2pLm";
@@ -77,4 +80,21 @@ export async function comFalhaDeAuditoria(acao: string, fn: () => Promise<unknow
     await dbAdmin.$executeRawUnsafe(`DROP TRIGGER ${nome} ON "EventoAuditoria"`);
     await dbAdmin.$executeRawUnsafe(`DROP FUNCTION ${nome}()`);
   }
+}
+
+/** Abre uma sessão real (login) para um utilizador de teste e devolve o TOKEN em claro, como o cookie do browser. */
+export async function abrirSessao(email: string): Promise<string> {
+  const r = await iniciarSessao(email, PASSWORD_TESTE);
+  if (!r.ok) throw new Error(`Não foi possível abrir sessão para ${email}`);
+  return r.token;
+}
+
+/** Corrige uma nota como o faria a interface: com o token da sessão REAL do utilizador. */
+export async function corrigirComSessao(
+  u: Principal & { email: string },
+  notaId: string,
+  valor: string | number,
+  motivo: string,
+) {
+  return corrigirNota(u, notaId, valor, motivo, { tokenSessao: await abrirSessao(u.email) });
 }

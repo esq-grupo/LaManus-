@@ -1,8 +1,8 @@
 // Ataques por SQL directo com a LIGAÇÃO DA APLICAÇÃO (papel restrito `lamanus_app`): nenhum pode contornar as pautas.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { criarAvaliacao, lancarNotas } from "@/server/modules/avaliacao";
-import { corrigirNota, publicarPauta, validarPauta } from "@/server/modules/pautas";
-import { db, dbAdmin, prepararBd } from "./ajuda";
+import { publicarPauta, validarPauta } from "@/server/modules/pautas";
+import { abrirSessao, corrigirComSessao, db, dbAdmin, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -106,11 +106,12 @@ describe("achado 1 — o interruptor de correcção não pode ser activado por S
 
   it("a única via é o serviço de correcção (função privilegiada): exige motivo, nota de pauta PUBLICADA e deixa auditoria", async () => {
     const x = await montar();
-    await corrigirNota(x.direccao, x.nota1.id, "15,5", "Erro de digitação do docente");
+    await corrigirComSessao(x.direccao, x.nota1.id, "15,5", "Erro de digitação do docente");
     expect((await db.nota.findUniqueOrThrow({ where: { id: x.nota1.id } })).valor).toBe(1550);
     // A função privilegiada recusa chamadas inválidas mesmo se invocada directamente por SQL:
+    const token = await abrirSessao(x.direccao.email);
     const chamar = (nota: string, valor: number, motivo: string) =>
-      db.$executeRaw`SELECT corrigir_nota_publicada(${nota}::uuid, ${valor}::int, ${x.direccao.id}::uuid, ${motivo}, NULL)`;
+      db.$executeRaw`SELECT corrigir_nota_publicada(${nota}::uuid, ${valor}::int, ${token}, ${motivo}, NULL)`;
     await expect(chamar(x.nota1.id, 1600, "x")).rejects.toThrow(/Motivo obrigatório/);
     await expect(chamar(x.nota1.id, 2001, "Motivo suficiente")).rejects.toThrow(/Valor inválido/);
     await expect(chamar(x.nota1.id, 1550, "Motivo suficiente")).rejects.toThrow(/igual/);
@@ -231,5 +232,160 @@ describe("outros vectores de SQL directo (verificação própria)", () => {
       dbAdmin.nota.update({ where: { id: x.nota1.id }, data: { valor: 1401 } }),
     ).resolves.toBeDefined();
     await dbAdmin.nota.update({ where: { id: x.nota1.id }, data: { valor: 1400 } });
+  });
+});
+
+describe("achado (revisão 2) — a função de correcção não pode aceitar um autor falsificado", () => {
+  it("chamada SQL directa com o UUID de uma pessoa da Direcção como autor NÃO corrige nada", async () => {
+    const x = await montar();
+    // Forma antiga da chamada: (nota, valor, AUTOR, motivo, ip). Já não pode ser aceite.
+    await expect(
+      db.$executeRaw`SELECT corrigir_nota_publicada(${x.nota1.id}::uuid, ${1999}::int, ${x.direccao.id}::uuid, ${"Motivo falso mas suficiente"}, NULL)`,
+    ).rejects.toThrow();
+    expect((await db.nota.findUniqueOrThrow({ where: { id: x.nota1.id } })).valor).toBe(1400);
+    expect(
+      await db.eventoAuditoria.count({
+        where: { acao: "NOTA_CORRIGIDA_APOS_PUBLICACAO", entidadeId: x.nota1.id },
+      }),
+    ).toBe(0);
+  });
+
+  it("com o UUID de um docente também não", async () => {
+    const x = await montar();
+    await expect(
+      db.$executeRaw`SELECT corrigir_nota_publicada(${x.nota1.id}::uuid, ${1999}::int, ${x.docente.id}::uuid, ${"Motivo falso mas suficiente"}, NULL)`,
+    ).rejects.toThrow();
+    expect((await db.nota.findUniqueOrThrow({ where: { id: x.nota1.id } })).valor).toBe(1400);
+  });
+});
+
+describe("achado (revisão 2) — a base de dados autentica e autoriza o autor pela sessão", () => {
+  const chamarComToken = (nota: string, valor: number, token: string) =>
+    db.$executeRaw`SELECT corrigir_nota_publicada(${nota}::uuid, ${valor}::int, ${token}, ${"Motivo suficiente"}, NULL)`;
+  const intacta = async (id: string) =>
+    expect((await db.nota.findUniqueOrThrow({ where: { id } })).valor).toBe(1400);
+
+  it("token inventado, vazio, curto ou nulo → sessão inválida", async () => {
+    const x = await montar();
+    for (const mau of ["", "curto", "x".repeat(43), "a".repeat(200)]) {
+      await expect(chamarComToken(x.nota1.id, 1700, mau), mau.slice(0, 8)).rejects.toThrow(
+        /Sessão inválida/,
+      );
+    }
+    await expect(
+      db.$executeRaw`SELECT corrigir_nota_publicada(${x.nota1.id}::uuid, ${1700}::int, NULL, ${"Motivo suficiente"}, NULL)`,
+    ).rejects.toThrow(/Sessão inválida/);
+    await intacta(x.nota1.id);
+  });
+
+  it("ler o hash da tabela Session NÃO serve de credencial (só o token em claro autentica)", async () => {
+    const x = await montar();
+    await abrirSessao(x.direccao.email);
+    const sessoes = await db.session.findMany({ where: { userId: x.direccao.id } });
+    expect(sessoes.length).toBeGreaterThan(0);
+    for (const sessao of sessoes)
+      await expect(chamarComToken(x.nota1.id, 1700, sessao.tokenHash)).rejects.toThrow(
+        /Sessão inválida/,
+      );
+    await intacta(x.nota1.id);
+  });
+
+  it("sessão válida mas SEM a permissão notas:corrigir (docente, secretaria, qualidade…) → recusado", async () => {
+    const x = await montar();
+    for (const papel of [
+      "DOCENTE",
+      "SECRETARIA",
+      "QUALIDADE",
+      "FINANCEIRO",
+      "ADMIN_TECNICO",
+      "ESTUDANTE",
+      "ENCARREGADO",
+      "RH",
+    ] as const) {
+      const u = await c.principal(papel);
+      await expect(
+        chamarComToken(x.nota1.id, 1700, await abrirSessao(u.email)),
+        papel,
+      ).rejects.toThrow(/Sem permissão/);
+    }
+    await intacta(x.nota1.id);
+  });
+
+  it("sessão da Direcção revogada, expirada, inactiva ou de conta desactivada → recusado", async () => {
+    const x = await montar();
+    const token = await abrirSessao(x.direccao.email);
+    const sessao = await db.session.findFirstOrThrow({
+      where: { userId: x.direccao.id },
+      orderBy: { createdAt: "desc" },
+    });
+    const reporSessao = () =>
+      dbAdmin.session.update({
+        where: { id: sessao.id },
+        data: {
+          revogadaEm: null,
+          expiraEm: new Date(Date.now() + 36e5),
+          ultimaActividade: new Date(),
+        },
+      });
+
+    await dbAdmin.session.update({ where: { id: sessao.id }, data: { revogadaEm: new Date() } });
+    await expect(chamarComToken(x.nota1.id, 1700, token), "revogada").rejects.toThrow(
+      /Sessão inválida/,
+    );
+    await reporSessao();
+    await dbAdmin.session.update({
+      where: { id: sessao.id },
+      data: { expiraEm: new Date(Date.now() - 1000) },
+    });
+    await expect(chamarComToken(x.nota1.id, 1700, token), "expirada").rejects.toThrow(
+      /Sessão inválida/,
+    );
+    await reporSessao();
+    await dbAdmin.session.update({
+      where: { id: sessao.id },
+      data: { ultimaActividade: new Date(Date.now() - 31 * 60_000) },
+    });
+    await expect(chamarComToken(x.nota1.id, 1700, token), "inactiva").rejects.toThrow(
+      /Sessão inválida/,
+    );
+    await reporSessao();
+    await dbAdmin.user.update({ where: { id: x.direccao.id }, data: { estado: "DESACTIVADO" } });
+    await expect(chamarComToken(x.nota1.id, 1700, token), "conta desactivada").rejects.toThrow(
+      /Sessão inválida/,
+    );
+    await intacta(x.nota1.id);
+  });
+
+  it("com a sessão da Direcção a correcção funciona e o AUTOR é deduzido da sessão (o token nunca fica na auditoria)", async () => {
+    const x = await montar();
+    const outraDireccao = await c.principal("DIRECCAO");
+    const token = await abrirSessao(x.direccao.email);
+    await chamarComToken(x.nota1.id, 1700, token);
+    const ev = await db.eventoAuditoria.findFirstOrThrow({
+      where: { acao: "NOTA_CORRIGIDA_APOS_PUBLICACAO", entidadeId: x.nota1.id },
+    });
+    expect(ev.actorId).toBe(x.direccao.id); // quem tem o token, não outra pessoa da Direcção
+    expect(ev.actorId).not.toBe(outraDireccao.id);
+    expect(ev.depois).toMatchObject({ valor: 1700, motivo: "Motivo suficiente" });
+    expect((ev.depois as { sessaoId?: string }).sessaoId).toBeTruthy();
+    expect(JSON.stringify(ev)).not.toContain(token);
+    expect((await db.nota.findUniqueOrThrow({ where: { id: x.nota1.id } })).lancadaPorId).toBe(
+      x.direccao.id,
+    );
+  });
+
+  it("o serviço recusa sem token e com o token de OUTRO utilizador (não deixa passar mismatch entre actor e sessão)", async () => {
+    const x = await montar();
+    const { corrigirNota } = await import("@/server/modules/pautas");
+    await expect(
+      corrigirNota(x.direccao, x.nota1.id, "17", "Motivo suficiente", { tokenSessao: null }),
+    ).rejects.toThrow(/Sessão inválida/);
+    const tokenDocente = await abrirSessao(x.docente.email);
+    await expect(
+      corrigirNota(x.direccao, x.nota1.id, "17", "Motivo suficiente", {
+        tokenSessao: tokenDocente,
+      }),
+    ).rejects.toThrow(/permissão/);
+    await intacta(x.nota1.id);
   });
 });

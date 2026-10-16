@@ -14,4 +14,4 @@ REVOKE UPDATE, DELETE, TRUNCATE ON "EventoAuditoria" FROM lamanus_app;
 REVOKE DELETE, TRUNCATE ON "PautaPublicacao" FROM lamanus_app;
 
 -- A correcção de notas publicadas só se faz por esta função privilegiada (ver migração 20261016200000_blindar_pautas).
-GRANT EXECUTE ON FUNCTION corrigir_nota_publicada(uuid, integer, uuid, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION corrigir_nota_publicada(uuid, integer, text, text, text) TO lamanus_app;

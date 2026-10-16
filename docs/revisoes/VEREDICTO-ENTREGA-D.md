@@ -17,3 +17,20 @@ O ficheiro original está no clone local do Codex (sem push); este resumo guarda
 | Validação | Mutações na BD (cada uma desfeita no fim, com as definições repostas e conferidas por soma de verificação): interruptor por variável (2 falhas), gatilho só no destino e chaves mutáveis (3), pauta pode nascer publicada (3), função sem exigir pauta publicada (1). | — |
 
 Pedida revisão n.º 2.
+
+
+---
+
+# Revisão n.º 2 — REPROVADO (resumo entregue pelo PO)
+
+Os dois contornos anteriores foram corrigidos e o CI passou na execução 38817168336. **Achado novo:** `lamanus_app` pode chamar directamente `corrigir_nota_publicada` e fornecer o UUID de uma pessoa da Direcção como autor. A função verifica o estado da pauta, o valor e o motivo, mas não verifica a identidade nem a permissão do autor; uma chamada SQL directa pode corrigir uma nota e atribuir falsamente a acção à Direcção.
+
+## Resposta do construtor (revisão 2)
+| # | Resposta | Onde |
+|---|---|---|
+| 1 | **Aceite — e era pior.** Reproduzido primeiro com testes que falhavam: a função aceitou **até o UUID de um docente** como autor. A função deixou de ter o argumento «autor»: recebe o **token da sessão**, valida-o ela própria (sessão existente, não revogada, dentro do prazo e de inactividade de 30 min, utilizador activo), confirma que o utilizador tem a permissão `notas:corrigir` através dos seus papéis e **deduz o autor** da sessão; a auditoria regista o autor e o `sessaoId` (nunca o token). A BD guarda só o SHA-256 do token: **ler o hash da tabela `Session` não serve de credencial** (testado). | migração `20261016210000_corrigir_nota_com_sessao`, `pautas.ts`, `dal.ts` |
+| Testes | Com a ligação da aplicação: token inventado/curto/nulo; hash lido de `Session`; sessão válida **sem** permissão (os 8 papéis); sessão revogada, expirada, inactiva e conta desactivada; a forma antiga da chamada (UUID de Direcção ou de docente) já não existe; o autor registado é o dono do token; o token nunca está na auditoria. Mutações (função reposta e conferida por soma de verificação): sem verificar a permissão (2 falhas), sem validar a sessão (1), aceitar o hash como credencial (4). | `bd-contorno.test.ts` |
+| Erro meu apanhado a tempo | Ao mudar a assinatura, o TypeScript não distinguiu o `ip` do `tokenSessao` (ambos `string \| null`) e a acção da interface passaria o IP como token. O aviso de «variável não usada» do lint denunciou-o antes de enviar. O contrato passou a um objecto nomeado `{ tokenSessao, ip }` (não se pode trocar) e o teste ponta-a-ponta da correcção pela interface confirma o caminho real do cookie. | `pautas.ts`, `acoes-avaliacao.ts` |
+| Limite reconhecido | A aplicação tem de poder criar sessões e papéis para funcionar; um atacante com SQL arbitrário *com o papel da aplicação* poderia inserir uma sessão para si. A defesa cobre o erro e o abuso comuns e deixa rasto (`sessaoId`: sessão sem `LOGIN_OK` correspondente é detectável). Defender o comprometimento total do papel exige funções próprias para criar sessões e auditar — registado como evolução (Entrega H). Operação: não activar o registo de parâmetros de consultas no PostgreSQL de produção (o token é um parâmetro). | ADR-0003 (decisão 13), `docs/security.md` §9.2 |
+
+Pedida revisão n.º 3.

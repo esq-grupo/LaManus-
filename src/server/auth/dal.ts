@@ -13,6 +13,14 @@ export const obterUtilizador = cache(async (): Promise<UtilizadorSessao | null> 
   return validarSessao(token);
 });
 
+/**
+ * Token da sessão do pedido (cookie). Só para operações em que a PRÓPRIA BASE DE DADOS tem de autenticar o autor
+ * (p.ex. corrigir uma nota publicada). Nunca incluir em props de componentes de cliente nem em respostas.
+ */
+export async function tokenDaSessao(): Promise<string | null> {
+  return (await cookies()).get(COOKIE_SESSAO_NOME)?.value ?? null;
+}
+
 export async function ipDoPedido(): Promise<string | null> {
   const h = await headers();
   // Atrás do proxy reverso da escola (Caddy/Nginx) o primeiro valor é o cliente.

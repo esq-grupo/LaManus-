@@ -2,6 +2,7 @@
 
 import type { Resultado } from "@/components/FormAcao";
 import { correrAccao } from "@/server/accao";
+import { tokenDaSessao } from "@/server/auth/dal";
 import { criarAvaliacao, lancarNotas } from "@/server/modules/avaliacao";
 import { corrigirNota, publicarPauta, reabrirPauta, validarPauta } from "@/server/modules/pautas";
 
@@ -74,7 +75,7 @@ export async function acaoCorrigirNota(_: Resultado | undefined, f: FormData) {
         String(f.get("notaId")),
         String(f.get("valor")),
         String(f.get("motivo")),
-        ip,
+        { tokenSessao: await tokenDaSessao(), ip },
       ),
       "Nota corrigida e registada."
     ),

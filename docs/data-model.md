@@ -145,7 +145,7 @@ Entidades: `Avaliacao`, `Nota`, `PautaPublicacao`; `Periodo` ganha `UNIQUE(id, a
 | Transições RASCUNHO→VALIDADA→PUBLICADA (e VALIDADA→RASCUNHO); PUBLICADA definitiva; pautas não se apagam | Gatilho `pauta_transicao` |
 | Notas e avaliações imutáveis com a pauta VALIDADA/PUBLICADA (verifica pauta antiga e nova; chaves imutáveis) | Gatilhos `nota_bloqueada` e `avaliacao_bloqueada`; só o DONO das tabelas os contorna |
 | Uma pauta só nasce em RASCUNHO; PUBLICADA é imutável; `TRUNCATE` travado | Gatilhos `pauta_transicao`, `*_sem_truncate` |
-| Correcção de nota publicada | Função `corrigir_nota_publicada` (SECURITY DEFINER): valida e audita na mesma transacção |
+| Correcção de nota publicada | Função `corrigir_nota_publicada(nota, valor, token_sessao, motivo, ip)` (SECURITY DEFINER): autentica o autor pela sessão, exige a permissão `notas:corrigir`, valida e audita na mesma transacção |
 | A aplicação não é dona das tabelas | Papel `lamanus_app` (`docker/db/papeis.sql`, `prisma/grants.sql`); auditoria sem UPDATE/DELETE/TRUNCATE; pautas sem DELETE/TRUNCATE |
 
 Decisões: `docs/decisions/ADR-0003-avaliacao-e-pautas.md`.

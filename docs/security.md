@@ -140,7 +140,7 @@ Notas de desenho:
 ### Garantias
 - **Filtro «PUBLICADA» na própria consulta SQL** (`notas-leitura.ts`): para estudantes e encarregados a nota por publicar nem sai da base de dados. Os portais não recebem o estado da pauta.
 - **Bloqueio na BD**: com a pauta VALIDADA/PUBLICADA nenhuma nota ou avaliação muda pelo papel da aplicação, seja qual for o caminho (testado com a ligação restrita da aplicação), excepto pela função de correcção. Os gatilhos verificam a pauta antiga e a nova e tornam imutáveis as chaves. Uma pauta só nasce em RASCUNHO.
-- **Correcção após publicação**: permissão própria `notas:corrigir` (só Direcção); a alteração faz-se pela função privilegiada `corrigir_nota_publicada` da BD, que exige pauta publicada e motivo e grava a auditoria antes/depois na mesma transacção. **Não existe nenhuma variável de sessão que desbloqueie notas.**
+- **Correcção após publicação**: permissão própria `notas:corrigir` (só Direcção); a alteração faz-se pela função privilegiada `corrigir_nota_publicada` da BD, que **autentica o autor pelo token da sessão e confirma a permissão `notas:corrigir`** (não aceita «autor» como argumento), exige pauta publicada e motivo e grava a auditoria antes/depois (com o `sessaoId`) na mesma transacção. **Não existe nenhuma variável de sessão que desbloqueie notas.**
 - **Concorrência**: validar/publicar/reabrir bloqueiam a pauta (`FOR UPDATE`), lançar notas bloqueia-a em modo partilhado (`FOR SHARE`).
 - **Leitura de pautas com escopo**: o Docente só vê as suas colunas; estudantes e encarregados não têm acesso a pautas.
 - Todas as operações gravam alteração e auditoria na mesma transacção.
@@ -163,3 +163,8 @@ Direcção, Secretaria, Qualidade: tudo (com o estado). Docente: só as suas dis
 - Os testes `bd-contorno.test.ts` atacam a base de dados **com a ligação da aplicação**: `set_config`, mover notas/avaliações entre pautas, inserir uma pauta já publicada, alterar chaves, `TRUNCATE`, `ALTER TABLE … DISABLE TRIGGER`, `SET ROLE`.
 - O job `compose` do CI confirma, num PostgreSQL criado pelo Docker Compose, que o papel da aplicação é recusado nesses comandos.
 - **Limitação operacional:** se, em produção, a aplicação for configurada com a ligação do dono, estas protecções por SQL directo deixam de valer. O runbook (`docs/migracoes.md`) e o README exigem `DATABASE_URL` com `lamanus_app`.
+
+### 9.2 Autor da correcção autenticado pela base de dados (revisão n.º 2 da Entrega D)
+- Testado com a ligação da aplicação: token inventado/curto/nulo; o **hash lido de `Session`** (não autentica); sessão válida **sem** a permissão (8 papéis); sessão revogada, expirada, inactiva (> 30 min) e conta desactivada; chamada com o UUID de um utilizador (já não existe esse parâmetro); o autor registado é o dono do token, e o token nunca aparece na auditoria.
+- **Operação:** não activar o registo de parâmetros das consultas (`log_statement`/`log_parameter`) no PostgreSQL de produção, porque o token da sessão é passado como parâmetro.
+- **Limite:** ver ADR-0003, decisão 13 (modelo de ameaça). A aplicação continua a poder criar sessões e papéis, por necessidade; a auditoria regista o `sessaoId` de cada correcção.

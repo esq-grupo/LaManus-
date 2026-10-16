@@ -36,3 +36,10 @@ Correcções ao REPROVADO da revisão 1 (2 achados + vectores extra); resposta p
 
 ### Adenda — CI da revisão n.º 2
 Execução [38817168336](https://github.com/esq-grupo/LaManus-/actions/runs/38817168336), commit `5a099d3`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`). No job `compose`, num PostgreSQL criado pelo Docker Compose, o passo «Confirmar que a aplicação NÃO tem poderes de dono» registou: `recusado (correcto)` para `TRUNCATE "Nota"`, `ALTER TABLE "Nota" DISABLE TRIGGER nota_bloqueada`, `SET ROLE lamanus` e `DELETE FROM "EventoAuditoria"`; a leitura normal (`SELECT count(*) FROM "Nota"`) funcionou.
+
+### Adenda — revisão n.º 3 (2026-10-16)
+Correcção ao achado da revisão 2 (autor falsificável na função de correcção); resposta em `VEREDICTO-ENTREGA-D.md`.
+- Local: 41 unitários + 136 integração + 23 e2e a passar; lint, formatação, tipos e compilação sem erros.
+- Mutações (3) detectadas; função reposta e conferida.
+- Erro meu apanhado antes de enviar: o `ip` e o `tokenSessao` eram indistinguíveis para o TypeScript; o aviso do lint revelou que a acção da interface ainda usava a forma antiga. Corrigido com um objecto nomeado.
+- CI: ver adenda seguinte após o push.

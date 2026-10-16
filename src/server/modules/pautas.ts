@@ -303,17 +303,20 @@ export async function reabrirPauta(
 /**
  * Corrige UMA nota de uma pauta já PUBLICADA — só a Direcção, com motivo obrigatório.
  * A alteração faz-se pela função privilegiada `corrigir_nota_publicada` da base de dados (única via permitida ao papel da
- * aplicação): ela própria valida (pauta publicada, valor, motivo) e regista a auditoria antes/depois na MESMA transacção.
- * Não existe nenhuma variável de sessão que desbloqueie notas: um acesso directo por SQL continua a ser recusado.
+ * aplicação). A função NÃO aceita um «autor» como argumento: recebe o TOKEN DA SESSÃO, autentica-o ela própria (sessão válida,
+ * utilizador activo), confirma que o utilizador tem a permissão `notas:corrigir` e regista como autor esse utilizador.
+ * Assim uma chamada SQL directa não consegue atribuir a correcção a outra pessoa.
  */
 export async function corrigirNota(
   actor: Principal,
   notaId: string,
   novoValor: string | number,
   motivo: string,
-  ip?: string | null,
+  contexto: { tokenSessao: string | null; ip?: string | null },
 ) {
+  const { tokenSessao, ip } = contexto; // objecto nomeado: o token e o IP têm o mesmo tipo e não se podem trocar por engano
   exigir(actor, "notas:corrigir");
+  if (!tokenSessao) throw new ErroAutorizacao("Sessão inválida.");
   const m = analisar(motivoSchema, motivo);
   let valor: number;
   try {
@@ -327,21 +330,29 @@ export async function corrigirNota(
   });
   if (!nota) throw new ErroValidacao(["Nota inexistente."]);
   const { avaliacao: a } = nota;
-  await db.$transaction(async (tx) => {
-    // Mensagens claras para os casos normais; a função da BD repete e impõe todas estas regras.
-    const estado = await bloquearPauta(
-      tx,
-      { turmaId: a.turmaId, periodoId: a.periodoId, anoLectivoId: a.anoLectivoId },
-      "exclusivo",
-    );
-    if (estado !== "PUBLICADA")
-      throw new ErroValidacao([
-        estado === "RASCUNHO"
-          ? "A pauta está em rascunho: o docente pode alterar a nota directamente."
-          : "A pauta está validada: reabra-a para corrigir (ou publique-a e corrija com motivo).",
-      ]);
-    const actual = await tx.nota.findUniqueOrThrow({ where: { id: nota.id } });
-    if (actual.valor === valor) throw new ErroValidacao(["O valor é igual ao actual."]);
-    await tx.$executeRaw`SELECT corrigir_nota_publicada(${nota.id}::uuid, ${valor}::int, ${actor.id}::uuid, ${m}, ${ip ?? null})`;
-  });
+  try {
+    await db.$transaction(async (tx) => {
+      // Mensagens claras para os casos normais; a função da BD repete e impõe todas estas regras.
+      const estado = await bloquearPauta(
+        tx,
+        { turmaId: a.turmaId, periodoId: a.periodoId, anoLectivoId: a.anoLectivoId },
+        "exclusivo",
+      );
+      if (estado !== "PUBLICADA")
+        throw new ErroValidacao([
+          estado === "RASCUNHO"
+            ? "A pauta está em rascunho: o docente pode alterar a nota directamente."
+            : "A pauta está validada: reabra-a para corrigir (ou publique-a e corrija com motivo).",
+        ]);
+      const actual = await tx.nota.findUniqueOrThrow({ where: { id: nota.id } });
+      if (actual.valor === valor) throw new ErroValidacao(["O valor é igual ao actual."]);
+      await tx.$executeRaw`SELECT corrigir_nota_publicada(${nota.id}::uuid, ${valor}::int, ${tokenSessao}, ${m}, ${ip ?? null})`;
+    });
+  } catch (e) {
+    // A base de dados recusou a sessão/permissão: o utilizador vê uma mensagem genérica (sem detalhes técnicos).
+    if (/Sessão inválida|Sem permissão para corrigir/.test(String((e as Error).message))) {
+      throw new ErroAutorizacao("Sessão inválida ou sem permissão para corrigir notas.");
+    }
+    throw e;
+  }
 }

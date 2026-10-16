@@ -2,8 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
 import { PAPEIS, type Papel } from "@/server/authz";
 import { criarAvaliacao, lancarNotas } from "@/server/modules/avaliacao";
-import { corrigirNota, publicarPauta, reabrirPauta, validarPauta } from "@/server/modules/pautas";
-import { comFalhaDeAuditoria, db, prepararBd } from "./ajuda";
+import { publicarPauta, reabrirPauta, validarPauta } from "@/server/modules/pautas";
+import { comFalhaDeAuditoria, corrigirComSessao, db, prepararBd } from "./ajuda";
 import { Cenario } from "./cenario";
 
 const c = new Cenario();
@@ -395,7 +395,7 @@ describe("correcção depois de publicada (só a Direcção, com motivo)", () =>
 
   it("corrige com motivo, audita antes/depois/motivo; a pauta continua PUBLICADA", async () => {
     const { x, nota } = await publicada();
-    await corrigirNota(x.direccao, nota.id, "15,5", "Erro de digitação do docente");
+    await corrigirComSessao(x.direccao, nota.id, "15,5", "Erro de digitação do docente");
     expect((await db.nota.findUniqueOrThrow({ where: { id: nota.id } })).valor).toBe(1550);
     expect(
       (
@@ -414,14 +414,14 @@ describe("correcção depois de publicada (só a Direcção, com motivo)", () =>
 
   it("exige motivo e valor válido; recusa valor igual", async () => {
     const { x, nota } = await publicada();
-    await expect(corrigirNota(x.direccao, nota.id, "15", "")).rejects.toThrow(/motivo/);
-    await expect(corrigirNota(x.direccao, nota.id, "15", "abcd")).rejects.toThrow(/motivo/);
-    await expect(corrigirNota(x.direccao, nota.id, "25", "Motivo suficiente")).rejects.toThrow(
+    await expect(corrigirComSessao(x.direccao, nota.id, "15", "")).rejects.toThrow(/motivo/);
+    await expect(corrigirComSessao(x.direccao, nota.id, "15", "abcd")).rejects.toThrow(/motivo/);
+    await expect(corrigirComSessao(x.direccao, nota.id, "25", "Motivo suficiente")).rejects.toThrow(
       /20/,
     );
-    await expect(corrigirNota(x.direccao, nota.id, "14,5", "Motivo suficiente")).rejects.toThrow(
-      /igual/,
-    );
+    await expect(
+      corrigirComSessao(x.direccao, nota.id, "14,5", "Motivo suficiente"),
+    ).rejects.toThrow(/igual/);
   });
 
   it("só a Direcção corrige; o Docente (que lançou) e os restantes são recusados", async () => {
@@ -429,7 +429,7 @@ describe("correcção depois de publicada (só a Direcção, com motivo)", () =>
     for (const papel of PAPEIS.filter((p) => p !== "DIRECCAO")) {
       const u = papel === "DOCENTE" ? x.docente : await c.principal(papel as Papel);
       await expect(
-        corrigirNota(u, nota.id, "20", "Tentativa indevida"),
+        corrigirComSessao(u, nota.id, "20", "Tentativa indevida"),
         papel,
       ).rejects.toBeInstanceOf(ErroAutorizacao);
     }
@@ -442,11 +442,11 @@ describe("correcção depois de publicada (só a Direcção, com motivo)", () =>
     const nota = await db.nota.findFirstOrThrow({
       where: { avaliacaoId: a, estudanteId: x.e1.id },
     });
-    await expect(corrigirNota(x.direccao, nota.id, "15", "Motivo suficiente")).rejects.toThrow(
+    await expect(corrigirComSessao(x.direccao, nota.id, "15", "Motivo suficiente")).rejects.toThrow(
       /rascunho/,
     );
     await validarPauta(x.direccao, x.turma.id, x.p1.id);
-    await expect(corrigirNota(x.direccao, nota.id, "15", "Motivo suficiente")).rejects.toThrow(
+    await expect(corrigirComSessao(x.direccao, nota.id, "15", "Motivo suficiente")).rejects.toThrow(
       /validada/,
     );
   });
@@ -506,7 +506,7 @@ describe("auditoria atómica — avaliação e pautas", () => {
       where: { avaliacaoId: a, estudanteId: x.e1.id },
     });
     await comFalhaDeAuditoria("NOTA_CORRIGIDA_APOS_PUBLICACAO", () =>
-      corrigirNota(x.direccao, nota.id, "19", "Motivo suficiente"),
+      corrigirComSessao(x.direccao, nota.id, "19", "Motivo suficiente"),
     );
     expect((await db.nota.findUniqueOrThrow({ where: { id: nota.id } })).valor).toBe(1000);
   });

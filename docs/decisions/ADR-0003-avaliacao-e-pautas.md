@@ -22,6 +22,10 @@ O erro mais grave possível nesta entrega é **um estudante ou encarregado ver u
 
 12. **Separação de papéis na base de dados (revisão n.º 1 do Codex).** O interruptor anterior era uma variável de sessão (`app.permitir_correcao`) que **qualquer ligação** podia definir. Foi eliminado. Agora: (a) o **dono das tabelas** (`lamanus`: migrações, seed, administração) é de confiança e é o único que os gatilhos deixam contornar — a decisão é pela **identidade** (`current_user`), não por uma variável; (b) a **aplicação corre com o papel restrito `lamanus_app`** (`docker/db/papeis.sql`, `prisma/grants.sql`): lê e escreve dados mas não é dona, por isso não pode desligar gatilhos, apagar índices, fazer `TRUNCATE`, mudar o dono nem assumir outro papel; (c) a correcção de notas publicadas é a função `corrigir_nota_publicada` (`SECURITY DEFINER`), que valida (pauta publicada, valor 0–20, motivo ≥ 5 caracteres, valor diferente) e grava a auditoria na mesma transacção. A aplicação tem `ADMIN_DATABASE_URL` (só migrações/seed/testes) e `DATABASE_URL` (restrita); `src/` nunca usa a de administração.
 
+13. **A base de dados autentica e autoriza o autor da correcção (revisão n.º 2 do Codex).** A versão anterior da função recebia o «autor» como argumento: qualquer chamada SQL com a ligação da aplicação podia atribuir a correcção a alguém da Direcção (testado: aceitou até o UUID de um docente). Agora a função **não tem argumento «autor»**: recebe o **token da sessão** (em claro só existe no browser e no servidor da aplicação; a BD guarda apenas o SHA-256), valida-o (sessão existente, não revogada, dentro do prazo e de inactividade, utilizador activo), confirma que o utilizador tem a permissão `notas:corrigir` através dos seus papéis e **deduz o autor** da sessão; regista na auditoria o autor e o `sessaoId`. Ler o hash da tabela `Session` não serve de credencial. O serviço passa o token num objecto nomeado (`{ tokenSessao, ip }`), para o token e o IP, que têm o mesmo tipo, não se poderem trocar por engano.
+
+   **Limite reconhecido (modelo de ameaça):** a aplicação precisa de criar sessões e papéis para funcionar; por isso um atacante com SQL arbitrário *com o papel da aplicação* poderia, em teoria, inserir uma sessão para si. A defesa cobre o erro e o abuso comuns (chamada directa à função, atribuição falsa, credenciais lidas da tabela) e deixa rasto (`sessaoId`: uma sessão sem o evento `LOGIN_OK` correspondente é detectável). Defender contra o comprometimento total do papel da aplicação exige separar a criação de sessões e a auditoria para funções próprias — fica registado como evolução possível (Entrega H), não como requisito desta entrega.
+
 ## Alternativas rejeitadas
 | Alternativa | Motivo |
 |---|---|
@@ -29,6 +33,7 @@ O erro mais grave possível nesta entrega é **um estudante ou encarregado ver u
 | Filtrar «publicadas» no JavaScript depois de ler | A nota já saiu da BD; um erro futuro podia expô-la |
 | Bloquear alterações só no código | Qualquer outro caminho (script, importação) contornava a regra |
 | Docente corrige depois de publicada (com motivo) | Troca de responsabilidade; a Direcção é quem publica e responde pela pauta |
+| Função de correcção a receber o autor como argumento | Qualquer chamada SQL podia atribuir a correcção a outra pessoa (achado do Codex) |
 | Interruptor por variável de sessão | Qualquer ligação podia activá-lo (achado do Codex) |
 | Aplicação a correr como dono das tabelas | Um erro de SQL na aplicação podia desligar as protecções |
 | Reabrir pautas publicadas | Os portais já mostraram as notas; a correcção nota a nota deixa rasto claro |

@@ -50,3 +50,8 @@ Corrige os 2 achados da revisão 1 (interruptor `set_config`; mover notas/avalia
 - Atenção especial: (1) `prisma/migrations/20261016200000_blindar_pautas/migration.sql` (função `e_dono_das_tabelas`, gatilhos, função `corrigir_nota_publicada`); (2) `docker/db/papeis.sql` + `prisma/grants.sql`; (3) se há **outros caminhos** que a aplicação possa usar para contornar as pautas (peço que procurem, incluindo a função de correcção: aceita o autor como argumento, porque a BD confia na aplicação para identificar a sessão).
 - CI verde no commit `5a099d3`: https://github.com/esq-grupo/LaManus-/actions/runs/38817168336
 - **Limitação operacional:** se em produção a aplicação correr com a ligação do dono, estas protecções deixam de valer (`docs/migracoes.md`).
+
+## Revisão n.º 3
+Corrige o achado da revisão 2 (a função de correcção aceitava um «autor» falsificado). Resposta ponto a ponto em `VEREDICTO-ENTREGA-D.md`; decisão 13 do ADR-0003; `docs/security.md` §9.2.
+- Testes locais: **41 unitários + 136 integração + 23 e2e, todos a passar**; lint, formatação, tipos e compilação sem erros.
+- Atenção especial: (1) migração `20261016210000_corrigir_nota_com_sessao` (função sem argumento «autor», autentica pela sessão, verifica a permissão); (2) `src/server/modules/pautas.ts` (`corrigirNota` com `{ tokenSessao, ip }`) e `src/app/(interno)/interno/acoes-avaliacao.ts`; (3) o **limite reconhecido** no ADR-0003 (a aplicação pode criar sessões) — peço opinião sobre se é aceitável para a 1.ª fase ou se deve ser tratado já.
