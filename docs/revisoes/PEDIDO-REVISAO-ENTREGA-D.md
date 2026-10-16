@@ -54,4 +54,5 @@ Corrige os 2 achados da revisão 1 (interruptor `set_config`; mover notas/avalia
 ## Revisão n.º 3
 Corrige o achado da revisão 2 (a função de correcção aceitava um «autor» falsificado). Resposta ponto a ponto em `VEREDICTO-ENTREGA-D.md`; decisão 13 do ADR-0003; `docs/security.md` §9.2.
 - Testes locais: **41 unitários + 136 integração + 23 e2e, todos a passar**; lint, formatação, tipos e compilação sem erros.
+- CI verde no commit `75ecdc8`: https://github.com/esq-grupo/LaManus-/actions/runs/38973244911
 - Atenção especial: (1) migração `20261016210000_corrigir_nota_com_sessao` (função sem argumento «autor», autentica pela sessão, verifica a permissão); (2) `src/server/modules/pautas.ts` (`corrigirNota` com `{ tokenSessao, ip }`) e `src/app/(interno)/interno/acoes-avaliacao.ts`; (3) o **limite reconhecido** no ADR-0003 (a aplicação pode criar sessões) — peço opinião sobre se é aceitável para a 1.ª fase ou se deve ser tratado já.

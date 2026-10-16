@@ -43,3 +43,6 @@ Correcção ao achado da revisão 2 (autor falsificável na função de correcç
 - Mutações (3) detectadas; função reposta e conferida.
 - Erro meu apanhado antes de enviar: o `ip` e o `tokenSessao` eram indistinguíveis para o TypeScript; o aviso do lint revelou que a acção da interface ainda usava a forma antiga. Corrigido com um objecto nomeado.
 - CI: ver adenda seguinte após o push.
+
+### Adenda — CI da revisão n.º 3
+Execução [38973244911](https://github.com/esq-grupo/LaManus-/actions/runs/38973244911), commit `75ecdc8`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`; 177 testes de unidade/integração e 23 e2e; o job `compose` volta a confirmar que a aplicação é recusada em `TRUNCATE`, `DISABLE TRIGGER`, `SET ROLE` e `DELETE` na auditoria).
