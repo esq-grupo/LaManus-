@@ -186,6 +186,6 @@ Desenho: `docs/decisions/ADR-0004-financeiro.md`. Dinheiro sempre em cêntimos (
 
 ### Limitações conhecidas (Entrega E)
 - Mesmo limite do ADR-0003 (decisão 13): quem consiga correr SQL arbitrário com `lamanus_app` pode criar sessões/papéis; o isolamento de sessões, papéis e auditoria é **trabalho obrigatório da Entrega H**. Para o dinheiro, o limite é o mesmo: as funções confiam na tabela `Session`.
-- «Quem confirma pagamentos» está **provisório** (Direcção, pessoa diferente de quem registou): decisão de negócio pendente do PO.
+- «Quem confirma pagamentos»: **decidido pelo PO em 2026-10-17** — a Direcção, pessoa diferente de quem registou.
 - Sem multa por atraso, sem referência multibanco e sem exportação CSV (fora do âmbito da Entrega E).
 - Os testes apagam recibos de dados de teste com a ligação do dono, por isso a verificação global da numeração (`reconciliacao_numeracao`) só se aplica a bases sem limpeza de testes (produção).
