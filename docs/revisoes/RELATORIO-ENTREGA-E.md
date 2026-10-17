@@ -28,3 +28,11 @@ A escola pode definir tipos de encargo (ex.: propina mensal), gerar as propinas 
 
 ### Adenda — CI no GitHub
 Execução [39067579076](https://github.com/esq-grupo/LaManus-/actions/runs/39067579076), commit `6b62569`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`).
+
+### Adenda — revisão n.º 1 do Codex (2026-10-17)
+Achado: ordem do estorno parcial (ver `VEREDICTO-ENTREGA-E.md`). Corrigido em `227370a` (migração `20261017120000_estorno_ordem_cronologica`), com teste reproduzido a falhar antes. Local: 227 testes de unidade/integração a passar.
+
+CI da execução [39069029627](https://github.com/esq-grupo/LaManus-/actions/runs/39069029627), commit `227370a`:
+- **Tentativa 1: falhou** no passo `npm test` do job `verificar` (o job `compose` passou). Não consegui identificar o teste: o log acessível só tinha os registos do PostgreSQL, e o descarregamento do zip é bloqueado pelo proxy. Não reproduzi a falha localmente.
+- **Tentativa 2** (repetição dos jobs falhados, uma só vez): **success** (`verificar` e `compose`).
+- Conclusão honesta: um teste intermitente, não identificado, falhou uma vez no CI. Já havia dois intermitentes por investigar em `avaliacao.test.ts` (`docs/ESTADO.md`); este pode ser um deles. Investigá-los fica como pendência antes da Entrega H.
