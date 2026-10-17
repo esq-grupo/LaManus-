@@ -10,7 +10,8 @@ Actualizado: 2026-10-17
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
 - **Entrega D:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 3 + OK do PO em 2026-10-17).
-- **Entrega actual:** E — Financeiro base (Codex APROVADO; a aguardar OK do PO).
+- **Entrega E:** FECHADA (Codex APROVADO na revisão n.º 3 + OK do PO em 2026-10-17).
+- **Entrega actual:** F — Portais (em curso).
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
@@ -26,7 +27,7 @@ Actualizado: 2026-10-17
 - [x] Codex: APROVADO COM RESSALVAS (ordem do estorno parcial) — corrigido na migração 20261017120000
 - [x] Revisão n.º 2 do Codex (falso positivo de teste) corrigida; CI verde à 1.ª tentativa (execução 39071990746)
 - [x] Codex: APROVADO (revisão n.º 3, commit 2a3f5fa)
-- [ ] OK do PO para fechar a E e iniciar a F
+- [x] OK do PO (2026-10-17): Entrega E FECHADA
 
 ## Tarefas da Entrega D
 - [x] Avaliações com pesos; lançamento de notas só pelo docente da disciplina
