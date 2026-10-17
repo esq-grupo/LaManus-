@@ -1,3 +1,4 @@
+import { contemValor } from "../valores";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ErroAutorizacao } from "@/server/erros";
 import { PAPEIS, type Papel } from "@/server/authz";
@@ -115,8 +116,8 @@ describe("NOTA NÃO PUBLICADA NUNCA SAI PARA OS PORTAIS (critério de aceitaçã
     const r = await notasDoEstudante(x.userEst, x.est.id);
     expect(r?.periodos.map((p) => p.periodo)).toEqual(["1.º período"]);
     const t = textoDe(r);
-    expect(t).not.toContain(String(V_VALIDADA));
-    expect(t).not.toContain(String(V_RASCUNHO));
+    expect(contemValor(t, V_VALIDADA)).toBe(false);
+    expect(contemValor(t, V_RASCUNHO)).toBe(false);
     const idsNaoPublicados = await db.nota.findMany({
       where: { estudanteId: x.est.id, avaliacao: { periodoId: { in: [x.p2.id, x.p3.id] } } },
       select: { id: true, avaliacaoId: true },
@@ -134,8 +135,8 @@ describe("NOTA NÃO PUBLICADA NUNCA SAI PARA OS PORTAIS (critério de aceitaçã
     const x = await prepararEstados(await montar());
     const r = await notasDoEstudante(x.userEnc, x.est.id);
     expect(r?.periodos.map((p) => p.periodo)).toEqual(["1.º período"]);
-    expect(textoDe(r)).not.toContain(String(V_VALIDADA));
-    expect(textoDe(r)).not.toContain(String(V_RASCUNHO));
+    expect(contemValor(textoDe(r), V_VALIDADA)).toBe(false);
+    expect(contemValor(textoDe(r), V_RASCUNHO)).toBe(false);
   });
 
   it("antes de qualquer publicação o portal não recebe NENHUMA nota (resposta vazia)", async () => {
@@ -162,8 +163,8 @@ describe("NOTA NÃO PUBLICADA NUNCA SAI PARA OS PORTAIS (critério de aceitaçã
     });
     await corrigirComSessao(x.direccao, nota.id, "16", "Erro de digitação do docente");
     const t = textoDe(await notasDoEstudante(x.userEst, x.est.id));
-    expect(t).toContain("1600");
-    expect(t).not.toContain(String(V_PUBLICADA));
+    expect(contemValor(t, 1600)).toBe(true);
+    expect(contemValor(t, V_PUBLICADA)).toBe(false);
   });
 
   it("reabrir uma pauta VALIDADA (ainda não publicada) mantém as notas invisíveis nos portais", async () => {
@@ -219,7 +220,7 @@ describe("acesso cruzado e papéis", () => {
     );
     expect(disciplinas).toEqual(new Set([x.tdMat.disciplinaId]));
     // vê também as suas notas não publicadas (é o autor), mas nunca as da colega de Português
-    expect(textoDe(r)).toContain(String(V_RASCUNHO));
+    expect(contemValor(textoDe(r), V_RASCUNHO)).toBe(true);
     expect(textoDe(r)).not.toContain(x.tdPort.disciplinaId);
     const estranho = await c.principal("DOCENTE");
     const fe = await c.funcionario(estranho.id);

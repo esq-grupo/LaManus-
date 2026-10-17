@@ -1,3 +1,4 @@
+import { contemValor } from "../valores";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import type { FixtureAvaliacao } from "./fixture-avaliacao";
 import { criarFixture, limparFixture } from "./fixture-bd";
@@ -44,8 +45,8 @@ test.describe("portais: só notas publicadas (dados do seed, só leitura)", () =
     }
     const html = await page.content();
     expect(html).not.toContain("18,88");
-    expect(html).not.toContain("1888");
-    expect(html).not.toContain("1700");
+    expect(contemValor(html, 1888)).toBe(false);
+    expect(contemValor(html, 1700)).toBe(false);
   });
 
   test("encarregado vê o mesmo (e só do educando verificado)", async ({ page }) => {

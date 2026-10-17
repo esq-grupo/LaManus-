@@ -38,7 +38,8 @@ export class Cenario {
     const c = await db.classe.create({
       data: {
         nome: `C-${this.sufixo}-${Math.random().toString(36).slice(2, 6)}`,
-        ordem: 100 + Math.floor(Math.random() * 100000),
+        // intervalo largo: `Classe.ordem` é única e um intervalo pequeno dava colisões aleatórias (~1 em cada 4 execuções completas)
+        ordem: 1000 + Math.floor(Math.random() * 2_000_000_000),
       },
     });
     this.classes.push(c.id);
