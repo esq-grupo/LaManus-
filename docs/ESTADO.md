@@ -9,8 +9,8 @@ Actualizado: 2026-10-13
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
-- **Entrega actual:** D — Avaliação. Revisão 2 REPROVADA (autor falsificável na função de correcção) → corrigida; **a aguardar revisão n.º 3 do Codex**.
-- **Depois:** E — Financeiro base (só após Codex APROVADO + OK PO na D).
+- **Entrega D:** Codex **APROVADO COM RESSALVAS** (revisão 3; ressalva: corrigir a afirmação do ADR e tornar obrigatório o isolamento na Entrega H — feito). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-D.md`).
+- **Depois:** E — Financeiro base (só após o OK do PO à Entrega D).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Tarefas da Entrega D
@@ -67,5 +67,5 @@ Actualizado: 2026-10-13
 - Lista de utilizadores limitada a 50 com pesquisa; falta paginação completa (Entrega F/H).
 - `prisma migrate reset` exige consentimento explícito do PO (protecção do Prisma); não usado.
 - **Decisão do PO (2026-10-16):** a configuração dos dois papéis da base de dados no servidor da escola fica para o plano de deploy (Entrega H); o procedimento já está em `docs/migracoes.md`. Pendente para a Entrega H: criar `lamanus_app`, configurar `ADMIN_DATABASE_URL`/`DATABASE_URL` e correr a verificação rápida.
-- Evolução possível (Entrega H): funções próprias para criar sessões e registar auditoria, para defender também contra o comprometimento total do papel da aplicação (ADR-0003, decisão 13).
+- **ENTREGA H — SEGURANÇA OBRIGATÓRIA (exigência do Codex, revisão 3 da Entrega D):** isolar em funções próprias a criação/revogação de sessões, a atribuição de papéis e o registo de auditoria (retirando ao papel `lamanus_app` a escrita directa nessas tabelas); garantir a integridade da auditoria de forma independente (cadeia de hashes ou cópia externa só de acréscimo); decidir onde se verifica a palavra-passe. Até estar feito, **não alegar** protecção contra o comprometimento do papel da aplicação (ADR-0003, decisão 13; `docs/security.md` §9.2).
 - Operação: não activar o registo de parâmetros de consultas no PostgreSQL de produção (o token de sessão é passado como parâmetro).

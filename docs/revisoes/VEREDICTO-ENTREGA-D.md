@@ -34,3 +34,13 @@ Os dois contornos anteriores foram corrigidos e o CI passou na execução 388171
 | Limite reconhecido | A aplicação tem de poder criar sessões e papéis para funcionar; um atacante com SQL arbitrário *com o papel da aplicação* poderia inserir uma sessão para si. A defesa cobre o erro e o abuso comuns e deixa rasto (`sessaoId`: sessão sem `LOGIN_OK` correspondente é detectável). Defender o comprometimento total do papel exige funções próprias para criar sessões e auditar — registado como evolução (Entrega H). Operação: não activar o registo de parâmetros de consultas no PostgreSQL de produção (o token é um parâmetro). | ADR-0003 (decisão 13), `docs/security.md` §9.2 |
 
 Pedida revisão n.º 3.
+
+
+---
+
+# Revisão n.º 3 — APROVADO COM RESSALVAS (resumo entregue pelo PO)
+
+CI verde (execução 38973244911; `verificar` e `compose`). A função valida a sessão e a permissão, deduz o autor da sessão e não guarda o token; o achado anterior fica corrigido. O limite é aceitável na 1.ª fase, **desde que se reconheça que o sistema ainda não está protegido contra quem consiga executar SQL arbitrário com o papel `lamanus_app`** (criar sessões, alterar atribuições de papéis, inserir eventos falsos na auditoria). **A ausência de um evento `LOGIN_OK` não garante que uma sessão forjada seja detectável.** Recomendação: corrigir essa afirmação no ADR-0003 e tratar o isolamento dessas operações como trabalho de segurança obrigatório da Entrega H antes de alegar protecção contra o comprometimento do papel da aplicação.
+
+## Resposta do construtor (revisão 3)
+**Aceite por inteiro — e a afirmação era minha e estava errada.** O ADR-0003 dizia que uma sessão sem o evento de login seria detectável; quem forja a sessão também forja a auditoria. Corrigi o ADR-0003 (decisão 13) e `docs/security.md` §9.2: passam a dizer, sem rodeios, o que **não** está protegido, e o isolamento (sessões, papéis, auditoria, e onde se verifica a palavra-passe) fica como **trabalho de segurança obrigatório da Entrega H** em `docs/ESTADO.md`. Até estar feito, não se alega protecção contra o comprometimento do papel da aplicação.

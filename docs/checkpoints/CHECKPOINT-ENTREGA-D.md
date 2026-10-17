@@ -1,0 +1,12 @@
+# Checkpoint — Entrega D (Avaliação) — 2026-10-17
+
+- **Resultado:** avaliações com peso; lançamento de notas só pelo docente da disciplina; médias (D4 provisória); pautas (validar → publicar, reabrir com motivo); correcção depois de publicada só pela Direcção, com motivo; portais só com notas publicadas.
+- **Revisão Codex:** n.º 1 REPROVADO (2 contornos por SQL directo) → n.º 2 REPROVADO (autor falsificável na função de correcção) → n.º 3 **APROVADO COM RESSALVAS**.
+- **Evidência:** CI verde nos commits `5a099d3` e `75ecdc8` (execuções 38817168336 e 38973244911). Testes: 41 unitários + 136 integração + 23 ponta-a-ponta.
+- **Critérios de aceitação:** nota não publicada não sai do servidor para os portais (filtro na própria consulta SQL; testado, incluindo no HTML do browser); docente não lança notas noutra turma (testado para todos os papéis e auditado).
+- **Mudança estrutural:** a base de dados passou a ter dois papéis (dono para migrações; `lamanus_app`, restrito, para a aplicação), com gatilhos e função de correcção que autentica o autor pela sessão. ADR-0003, `docs/migracoes.md`.
+- **Decisão do PO:** só a Direcção corrige notas publicadas, com motivo.
+- **Lições:** (1) as regras críticas têm de viver na base de dados **e** ser testadas com a ligação restrita da aplicação; (2) um interruptor que a própria aplicação pode accionar não é uma protecção; (3) tipos iguais em argumentos seguidos (IP e token) trocam-se sem o compilador reparar — usar objectos nomeados; (4) uma afirmação de segurança no ADR tem de ser verificada com o mesmo rigor que o código (a de «sessão forjada detectável» estava errada); (5) a causa de um teste instável tem de ser encontrada, não adivinhada (a primeira hipótese estava errada).
+- **Pendências OBRIGATÓRIAS para a Entrega H (segurança):** isolar sessões, papéis e auditoria em funções próprias, retirando ao papel da aplicação a escrita directa; integridade independente da auditoria; decidir onde se verifica a palavra-passe. Até lá não alegar protecção contra o comprometimento do papel da aplicação.
+- **Outras pendências:** configurar `lamanus_app` no servidor da escola (`docs/migracoes.md`); D4 (fórmula) e validação estrita por confirmar com a escola; teste de integração intermitente por investigar; paginação completa da lista de utilizadores; notificações de pauta publicada (Entrega F) e boletim em PDF (Entrega G).
+- **Próxima entrega:** E — Financeiro base, só após OK do PO.
