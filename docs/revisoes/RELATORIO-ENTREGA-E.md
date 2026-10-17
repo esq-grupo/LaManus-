@@ -25,3 +25,6 @@ A escola pode definir tipos de encargo (ex.: propina mensal), gerar as propinas 
 4. Cometi um `commit` local com erros de tipos por encadear mal os comandos; detectei logo, corrigi e emendei antes de enviar.
 
 **H. Próxima acção** — CI e entrega ao Codex.
+
+### Adenda — CI no GitHub
+Execução [39067579076](https://github.com/esq-grupo/LaManus-/actions/runs/39067579076), commit `6b62569`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`).

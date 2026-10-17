@@ -22,6 +22,7 @@ Actualizado: 2026-10-17
 - [x] Saldo calculado; relatórios (dívidas por turma, recebimentos por período, extracto) e reconciliação
 - [x] Livro imutável na BD (grants + gatilhos + funções autenticadas pela sessão)
 - [x] Testes: 48 unitários, 178 integração, 24 e2e (ver relatório)
+- [x] CI verde (execução 39067579076)
 - [ ] Revisão Codex + OK do PO; decisão de negócio pendente: quem confirma pagamentos
 
 ## Tarefas da Entrega D
