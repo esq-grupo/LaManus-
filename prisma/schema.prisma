@@ -25,6 +25,7 @@ model AnoLectivo {
   turmas     Turma[]
   periodos   Periodo[]
   matriculas Matricula[]
+  encargos   Encargo[]
 }
 
 model Classe {
@@ -72,6 +73,8 @@ model Estudante {
   matriculas     Matricula[]
   encarregados   EstudanteEncarregado[]
   notas          Nota[]
+  encargos       Encargo[]
+  pagamentos     Pagamento[]
   userId         String?                @unique @db.Uuid
   user           User?                  @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
@@ -401,4 +404,179 @@ model PautaPublicacao {
 
   @@unique([turmaId, periodoId])
   @@index([periodoId])
+}
+
+// ───────── Entrega E: financeiro (livro de movimentos imutável; dinheiro em BigInt de CÊNTIMOS) ─────────
+
+enum Periodicidade {
+  MENSAL
+  ANUAL
+  UNICO
+}
+
+enum MetodoPagamento {
+  TRANSFERENCIA
+  DEPOSITO
+  TPA
+  NUMERARIO
+}
+
+enum EstadoPagamento {
+  REGISTADO
+  CONFIRMADO
+  ESTORNADO
+  ANULADO
+}
+
+enum ModoAlocacao {
+  AUTOMATICO
+  MANUAL
+}
+
+enum EstadoEstorno {
+  PROPOSTO
+  APROVADO
+  REJEITADO
+}
+
+model TipoEncargo {
+  id              String        @id @default(uuid()) @db.Uuid
+  nome            String        @unique
+  valorReferencia BigInt
+  periodicidade   Periodicidade
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  encargos        Encargo[]
+}
+
+// O valor de um encargo NUNCA muda. Para corrigir: anular (sem pagamentos líquidos) e criar outro.
+model Encargo {
+  id             String              @id @default(uuid()) @db.Uuid
+  estudanteId    String              @db.Uuid
+  tipoEncargoId  String              @db.Uuid
+  anoLectivoId   String              @db.Uuid
+  referencia     String
+  descricao      String
+  valor          BigInt
+  vencimento     DateTime            @db.Date
+  anuladoEm      DateTime?
+  anuladoPorId   String?             @db.Uuid
+  motivoAnulacao String?
+  criadoPorId    String?             @db.Uuid
+  createdAt      DateTime            @default(now())
+  estudante      Estudante           @relation(fields: [estudanteId], references: [id])
+  tipo           TipoEncargo         @relation(fields: [tipoEncargoId], references: [id])
+  anoLectivo     AnoLectivo          @relation(fields: [anoLectivoId], references: [id])
+  alocacoes      AlocacaoPagamento[]
+
+  @@unique([estudanteId, tipoEncargoId, referencia])
+  @@unique([id, estudanteId])
+  @@index([estudanteId, vencimento])
+  @@index([anoLectivoId])
+  @@index([tipoEncargoId])
+}
+
+// O valor de um pagamento NUNCA muda. Só passa a CONFIRMADO/ESTORNADO pelas funções da BD que autenticam o autor.
+model Pagamento {
+  id                String              @id @default(uuid()) @db.Uuid
+  estudanteId       String              @db.Uuid
+  valor             BigInt
+  metodo            MetodoPagamento
+  referenciaExterna String?
+  nomePagador       String?
+  dataPagamento     DateTime            @db.Date
+  modoAlocacao      ModoAlocacao        @default(AUTOMATICO)
+  estado            EstadoPagamento     @default(REGISTADO)
+  registadoPorId    String              @db.Uuid
+  confirmadoPorId   String?             @db.Uuid
+  confirmadoEm      DateTime?
+  anuladoEm         DateTime?
+  anuladoPorId      String?             @db.Uuid
+  motivoAnulacao    String?
+  createdAt         DateTime            @default(now())
+  estudante         Estudante           @relation(fields: [estudanteId], references: [id])
+  alocacoes         AlocacaoPagamento[]
+  estornos          Estorno[]
+  recibo            Recibo?
+
+  @@unique([id, estudanteId])
+  @@index([estudanteId])
+  @@index([estado, dataPagamento])
+}
+
+// Só se cria dentro de confirmar_pagamento / alocar_pagamento_manual (funções da BD). Nunca se edita nem apaga.
+model AlocacaoPagamento {
+  id          String            @id @default(uuid()) @db.Uuid
+  pagamentoId String            @db.Uuid
+  encargoId   String            @db.Uuid
+  estudanteId String            @db.Uuid
+  valor       BigInt
+  createdAt   DateTime          @default(now())
+  pagamento   Pagamento         @relation(fields: [pagamentoId, estudanteId], references: [id, estudanteId])
+  encargo     Encargo           @relation(fields: [encargoId, estudanteId], references: [id, estudanteId])
+  estornos    EstornoAlocacao[]
+
+  @@unique([id, pagamentoId])
+  @@index([pagamentoId])
+  @@index([encargoId])
+}
+
+model Estorno {
+  id            String            @id @default(uuid()) @db.Uuid
+  pagamentoId   String            @db.Uuid
+  valor         BigInt
+  valorCredito  BigInt            @default(0)
+  motivo        String
+  estado        EstadoEstorno     @default(PROPOSTO)
+  propostoPorId String            @db.Uuid
+  propostoEm    DateTime          @default(now())
+  decididoPorId String?           @db.Uuid
+  decididoEm    DateTime?
+  motivoDecisao String?
+  pagamento     Pagamento         @relation(fields: [pagamentoId], references: [id])
+  alocacoes     EstornoAlocacao[]
+
+  @@unique([id, pagamentoId])
+  @@index([pagamentoId])
+  @@index([estado])
+}
+
+// Movimento INVERSO de uma alocação (valores sempre positivos).
+model EstornoAlocacao {
+  id          String            @id @default(uuid()) @db.Uuid
+  estornoId   String            @db.Uuid
+  pagamentoId String            @db.Uuid
+  alocacaoId  String            @db.Uuid
+  valor       BigInt
+  createdAt   DateTime          @default(now())
+  estorno     Estorno           @relation(fields: [estornoId, pagamentoId], references: [id, pagamentoId])
+  alocacao    AlocacaoPagamento @relation(fields: [alocacaoId, pagamentoId], references: [id, pagamentoId])
+
+  @@index([estornoId])
+  @@index([alocacaoId])
+}
+
+// Contador por série e ano para a numeração SEM SALTOS (linha bloqueada na mesma transacção que emite o recibo).
+model SerieRecibo {
+  serie   String
+  ano     Int
+  proximo Int    @default(1)
+
+  @@id([serie, ano])
+}
+
+model Recibo {
+  id           String    @id @default(uuid()) @db.Uuid
+  serie        String
+  ano          Int
+  numero       Int
+  pagamentoId  String    @unique @db.Uuid
+  estudanteId  String    @db.Uuid
+  valor        BigInt
+  emitidoPorId String    @db.Uuid
+  emitidoEm    DateTime  @default(now())
+  pagamento    Pagamento @relation(fields: [pagamentoId], references: [id])
+
+  @@unique([serie, ano, numero])
+  @@index([estudanteId])
 }

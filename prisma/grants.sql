@@ -15,3 +15,16 @@ REVOKE DELETE, TRUNCATE ON "PautaPublicacao" FROM lamanus_app;
 
 -- A correcção de notas publicadas só se faz por esta função privilegiada (ver migração 20261016200000_blindar_pautas).
 GRANT EXECUTE ON FUNCTION corrigir_nota_publicada(uuid, integer, text, text, text) TO lamanus_app;
+
+-- Livro de movimentos financeiros (ADR-0004): a aplicação só LÊ estas tabelas; escreve através das funções
+-- registar_pagamento, anular_pagamento, confirmar_pagamento, alocar_pagamento_manual, propor_estorno, rejeitar_estorno, aprovar_estorno.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON "Pagamento", "AlocacaoPagamento", "Estorno", "EstornoAlocacao", "Recibo", "SerieRecibo" FROM lamanus_app;
+-- Tipos de encargo e encargos: a aplicação cria e anula (nunca apaga nem trunca).
+REVOKE DELETE, TRUNCATE ON "TipoEncargo", "Encargo" FROM lamanus_app;
+GRANT EXECUTE ON FUNCTION registar_pagamento(uuid, bigint, "MetodoPagamento", date, "ModoAlocacao", text, text, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION anular_pagamento(uuid, text, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION confirmar_pagamento(uuid, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION alocar_pagamento_manual(uuid, uuid, bigint, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION propor_estorno(uuid, bigint, text, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION rejeitar_estorno(uuid, text, text, text) TO lamanus_app;
+GRANT EXECUTE ON FUNCTION aprovar_estorno(uuid, text, text, text) TO lamanus_app;

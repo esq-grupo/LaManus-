@@ -9,8 +9,9 @@ Actualizado: 2026-10-13
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
 - **Entrega B:** FECHADA (Codex APROVADO na revisão 2 + OK do PO em 2026-10-13).
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
-- **Entrega D:** Codex **APROVADO COM RESSALVAS** (revisão 3; ressalva: corrigir a afirmação do ADR e tornar obrigatório o isolamento na Entrega H — feito). **A aguardar OK final do PO** (`docs/checkpoints/CHECKPOINT-ENTREGA-D.md`).
-- **Depois:** E — Financeiro base (só após o OK do PO à Entrega D).
+- **Entrega D:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 3 + OK do PO em 2026-10-17).
+- **Entrega actual:** E — Financeiro base (em curso).
+- **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Tarefas da Entrega D

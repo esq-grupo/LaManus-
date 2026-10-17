@@ -22,6 +22,7 @@ const PROIBIDAS: Record<Papel, Permissao[]> = {
     "pauta:publicar",
     "financeiro:editar",
     "estorno:aprovar",
+    "pagamento:confirmar",
     "utilizadores:gerir",
   ],
   FINANCEIRO: [
@@ -29,6 +30,7 @@ const PROIBIDAS: Record<Papel, Permissao[]> = {
     "notas:ver",
     "pauta:publicar",
     "estorno:aprovar",
+    "pagamento:confirmar",
     "utilizadores:gerir",
     "estudantes:editar",
   ],
@@ -69,6 +71,7 @@ const PROIBIDAS: Record<Papel, Permissao[]> = {
     "estudantes:editar",
     "pauta:publicar",
     "estorno:aprovar",
+    "pagamento:confirmar",
   ],
 };
 

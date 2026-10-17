@@ -11,6 +11,7 @@ export class Cenario {
   funcionarios: string[] = [];
   estudantes: string[] = [];
   encarregados: string[] = [];
+  tiposEncargo: string[] = [];
   sufixo = randomUUID().slice(0, 8);
 
   async principal(...papeis: Papel[]): Promise<Principal & { email: string }> {
@@ -129,7 +130,38 @@ export class Cenario {
     return db.matricula.create({ data: { estudanteId, turmaId, anoLectivoId, tipo: "NOVA" } });
   }
 
+  /** Tipo de encargo (nome único por teste). */
+  async tipoEncargo(
+    valorReferencia = 5_000_000n,
+    periodicidade: "MENSAL" | "ANUAL" | "UNICO" = "MENSAL",
+  ) {
+    const t = await db.tipoEncargo.create({
+      data: {
+        nome: `TE-${this.sufixo}-${Math.random().toString(36).slice(2, 6)}`,
+        valorReferencia,
+        periodicidade,
+      },
+    });
+    this.tiposEncargo.push(t.id);
+    return t;
+  }
+
   async limpar() {
+    // Livro financeiro: só o DONO apaga (gatilhos). Ordem: dependentes primeiro.
+    const ests = { in: this.estudantes };
+    await dbAdmin.$transaction(async (tx) => {
+      await tx.recibo.deleteMany({ where: { estudanteId: ests } });
+      await tx.estornoAlocacao.deleteMany({
+        where: { estorno: { pagamento: { estudanteId: ests } } },
+      });
+      await tx.estorno.deleteMany({ where: { pagamento: { estudanteId: ests } } });
+      await tx.alocacaoPagamento.deleteMany({ where: { estudanteId: ests } });
+      await tx.pagamento.deleteMany({ where: { estudanteId: ests } });
+      await tx.encargo.deleteMany({
+        where: { OR: [{ estudanteId: ests }, { anoLectivoId: { in: this.anos } }] },
+      });
+      await tx.tipoEncargo.deleteMany({ where: { id: { in: this.tiposEncargo } } });
+    });
     // As notas/avaliações/pautas são protegidas por gatilhos que só o DONO das tabelas pode contornar: a limpeza usa a ligação de administração.
     await dbAdmin.$transaction(async (tx) => {
       await await tx.nota.deleteMany({
