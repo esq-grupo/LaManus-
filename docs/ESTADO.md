@@ -24,7 +24,8 @@ Actualizado: 2026-10-17
 - [x] Testes: 48 unitários, 178 integração, 24 e2e (ver relatório)
 - [x] CI verde (execução 39067579076)
 - [x] Codex: APROVADO COM RESSALVAS (ordem do estorno parcial) — corrigido na migração 20261017120000
-- [ ] Nova confirmação do Codex (opcional) + OK do PO
+- [x] Revisão n.º 2 do Codex (falso positivo de teste) corrigida; CI verde à 1.ª tentativa (execução 39071990746)
+- [ ] Nova confirmação do Codex + OK do PO
 
 ## Tarefas da Entrega D
 - [x] Avaliações com pesos; lançamento de notas só pelo docente da disciplina
@@ -82,4 +83,4 @@ Actualizado: 2026-10-17
 - **Decisão do PO (2026-10-16):** a configuração dos dois papéis da base de dados no servidor da escola fica para o plano de deploy (Entrega H); o procedimento já está em `docs/migracoes.md`. Pendente para a Entrega H: criar `lamanus_app`, configurar `ADMIN_DATABASE_URL`/`DATABASE_URL` e correr a verificação rápida.
 - **ENTREGA H — SEGURANÇA OBRIGATÓRIA (exigência do Codex, revisão 3 da Entrega D):** isolar em funções próprias a criação/revogação de sessões, a atribuição de papéis e o registo de auditoria (retirando ao papel `lamanus_app` a escrita directa nessas tabelas); garantir a integridade da auditoria de forma independente (cadeia de hashes ou cópia externa só de acréscimo); decidir onde se verifica a palavra-passe. Até estar feito, **não alegar** protecção contra o comprometimento do papel da aplicação (ADR-0003, decisão 13; `docs/security.md` §9.2).
 - Operação: não activar o registo de parâmetros de consultas no PostgreSQL de produção (o token de sessão é passado como parâmetro).
-- Testes intermitentes por investigar (+1 falha não identificada no CI em 2026-10-17, passou na repetição) (suite completa, não reproduzidos isolados): `avaliacao.test.ts › OUTRO docente não cria…` (1 vez, Entrega D) e `avaliacao.test.ts › reabrir exige motivo…` (1 em 6 execuções, 2026-10-17). Ambos em `avaliacao.test.ts`; suspeita: interferência entre testes/estado partilhado — a investigar antes da Entrega H.
+- Testes intermitentes (`avaliacao`/`pautas`): causa provável encontrada e corrigida em 2026-10-17 — colisões aleatórias de `Classe.ordem` nos testes (0 falhas em 16 execuções completas; CI verde à 1.ª tentativa). Se voltarem, reabrir.

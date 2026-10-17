@@ -36,3 +36,9 @@ CI da execução [39069029627](https://github.com/esq-grupo/LaManus-/actions/run
 - **Tentativa 1: falhou** no passo `npm test` do job `verificar` (o job `compose` passou). Não consegui identificar o teste: o log acessível só tinha os registos do PostgreSQL, e o descarregamento do zip é bloqueado pelo proxy. Não reproduzi a falha localmente.
 - **Tentativa 2** (repetição dos jobs falhados, uma só vez): **success** (`verificar` e `compose`).
 - Conclusão honesta: um teste intermitente, não identificado, falhou uma vez no CI. Já havia dois intermitentes por investigar em `avaliacao.test.ts` (`docs/ESTADO.md`); este pode ser um deles. Investigá-los fica como pendência antes da Entrega H.
+
+### Adenda — revisão n.º 2 do Codex (2026-10-17)
+Achado: falso positivo no teste de privacidade dos portais (`1777` dentro de um UUID). Resposta em `VEREDICTO-ENTREGA-E-v2.md`.
+- `contemValor` (número isolado, nunca pedaço de um identificador) em `notas-visibilidade.test.ts` e no e2e `avaliacao.spec.ts`, com testes próprios; mutação (filtro `PUBLICADA` desligado) → 4 testes falharam; ficheiro reposto e conferido por `md5`.
+- Causa raiz de outros intermitentes: `Cenario.classe()` sorteava a `Classe.ordem` (única) em 100 000 valores → colisões aleatórias (`Classe_ordem_key`), cerca de 1 em 4 execuções completas. Intervalo alargado. **Local: 0 falhas em 16 execuções completas** (antes: 3 falhas em 12 execuções, em testes diferentes).
+- CI: execução [39071990746](https://github.com/esq-grupo/LaManus-/actions/runs/39071990746), commit `2a3f5fa`, **tentativa 1: success** (jobs `verificar` e `compose`), sem repetição.
