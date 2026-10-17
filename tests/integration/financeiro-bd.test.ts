@@ -417,6 +417,31 @@ describe("financeiro — estornos com dupla aprovação", () => {
     await expect(propor(p.tFin, pag, 1n)).rejects.toThrow();
   });
 
+  it("estorno parcial reverte a alocação MAIS RECENTE, mesmo que o encargo seja mais antigo (alocações manuais)", async () => {
+    const p = await pessoas();
+    const { ano, tipo, est } = await base();
+    const antigo = await encargo(est.id, tipo.id, ano.id, "2026-10", 100_00n, "2026-10-05");
+    const recente = await encargo(est.id, tipo.id, ano.id, "2026-12", 100_00n, "2026-12-05");
+    const pag = await registar(p.tFin, est.id, 200_00n, "MANUAL");
+    await confirmar(p.tDir, pag);
+    const alocar = (enc: string) =>
+      db.$executeRaw`SELECT alocar_pagamento_manual(${pag}::uuid, ${enc}::uuid, 100_00::bigint, ${p.tFin}, NULL)`;
+    await alocar(recente.id); // primeiro (mais antiga no tempo)
+    await new Promise((r) => setTimeout(r, 20));
+    await alocar(antigo.id); // depois (mais recente no tempo)
+    await aprovar(p.tDir, await propor(p.tFin, pag, 60_00n));
+    const pagos = Object.fromEntries(
+      (
+        await db.$queryRaw<
+          { id: string; pago: bigint }[]
+        >`SELECT id, pago FROM "VistaEncargo" WHERE "estudanteId" = ${est.id}::uuid`
+      ).map((r) => [r.id, r.pago]),
+    );
+    expect(pagos[antigo.id]).toBe(40_00n); // a alocação feita por último é a primeira a ser revertida
+    expect(pagos[recente.id]).toBe(100_00n);
+    expect(await reconc(est.id)).toEqual([]);
+  });
+
   it("estorno rejeitado não altera nada; aprovado/rejeitado é definitivo", async () => {
     const p = await pessoas();
     const { est } = await base();
