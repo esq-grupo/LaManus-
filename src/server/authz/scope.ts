@@ -64,6 +64,45 @@ export function escopoEstudantes(principal: Principal, agora: Date = new Date())
   return filtros.length === 1 ? filtros[0]! : { OR: filtros };
 }
 
+/**
+ * Escopo FINANCEIRO. Não reutiliza `escopoEstudantes`: quem acumula DOCENTE com ENCARREGADO não pode ver as contas dos alunos
+ * das suas turmas. Gestão (Direcção, Secretaria, Financeiro): todos; Estudante: o próprio; Encarregado: educandos com ligação
+ * verificada, autorização activa e dentro da validade. Sem `financeiro:ver` ou sem regra explícita → nada.
+ */
+export function escopoFinanceiro(principal: Principal, agora: Date = new Date()): FiltroEstudantes {
+  if (!can(principal, "financeiro:ver")) return NADA;
+  const papeis = new Set(principal.papeis);
+  if (papeis.has("DIRECCAO") || papeis.has("SECRETARIA") || papeis.has("FINANCEIRO")) return {};
+  const filtros: FiltroEstudantes[] = [];
+  if (papeis.has("ESTUDANTE")) filtros.push({ userId: principal.id });
+  if (papeis.has("ENCARREGADO")) {
+    const d = hojeEmLuanda(agora);
+    filtros.push({
+      encarregados: {
+        some: {
+          verificado: true,
+          autorizacaoActiva: true,
+          encarregado: { userId: principal.id, archivedAt: null },
+          AND: [
+            { OR: [{ validoDe: null }, { validoDe: { lte: d } }] },
+            { OR: [{ validoAte: null }, { validoAte: { gte: d } }] },
+          ],
+        },
+      },
+    });
+  }
+  if (filtros.length === 0) return NADA;
+  return filtros.length === 1 ? filtros[0]! : { OR: filtros };
+}
+
+/** Quem gere o financeiro (vê todas as contas): Direcção, Secretaria e Financeiro. */
+export function veFinanceiroCompleto(principal: Principal): boolean {
+  return (
+    can(principal, "financeiro:ver") &&
+    principal.papeis.some((p) => p === "DIRECCAO" || p === "SECRETARIA" || p === "FINANCEIRO")
+  );
+}
+
 // ── Estrutura escolar (turmas) ───────────────────────────────────────────────
 
 const PAPEIS_ESTRUTURA_COMPLETA = [

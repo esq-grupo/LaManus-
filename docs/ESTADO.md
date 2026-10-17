@@ -1,6 +1,6 @@
 # ESTADO — Projecto Lá Manu (EESQ-LM-001)
 
-Actualizado: 2026-10-13
+Actualizado: 2026-10-17
 
 > Regra permanente: perguntas ao PO = 3 opções, recomendada primeiro (`docs/REGRAS-COMUNICACAO.md`).
 
@@ -13,6 +13,16 @@ Actualizado: 2026-10-13
 - **Entrega actual:** E — Financeiro base (em curso).
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
+
+## Tarefas da Entrega E
+- [x] Tipos de encargo; geração mensal em lote idempotente; encargo avulso; anulação com motivo
+- [x] Pagamento em 2 passos (registar → Direcção confirma) com alocação automática ao encargo mais antigo (ou manual)
+- [x] Recibo com numeração sem saltos + PDF (verifica permissão e escopo em cada descarga)
+- [x] Estorno com proposta (Financeiro) e aprovação (Direcção, outra pessoa); movimento inverso
+- [x] Saldo calculado; relatórios (dívidas por turma, recebimentos por período, extracto) e reconciliação
+- [x] Livro imutável na BD (grants + gatilhos + funções autenticadas pela sessão)
+- [x] Testes: 48 unitários, 178 integração, 24 e2e (ver relatório)
+- [ ] Revisão Codex + OK do PO; decisão de negócio pendente: quem confirma pagamentos
 
 ## Tarefas da Entrega D
 - [x] Avaliações com pesos; lançamento de notas só pelo docente da disciplina

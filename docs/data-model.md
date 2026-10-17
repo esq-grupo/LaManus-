@@ -149,3 +149,12 @@ Entidades: `Avaliacao`, `Nota`, `PautaPublicacao`; `Periodo` ganha `UNIQUE(id, a
 | A aplicação não é dona das tabelas | Papel `lamanus_app` (`docker/db/papeis.sql`, `prisma/grants.sql`); auditoria sem UPDATE/DELETE/TRUNCATE; pautas sem DELETE/TRUNCATE |
 
 Decisões: `docs/decisions/ADR-0003-avaliacao-e-pautas.md`.
+
+## 7. Estado de implementação — Entrega E (2026-10-17)
+
+Migração `20261017100000_financeiro`. Tabelas: `TipoEncargo`, `Encargo` (única por estudante+tipo+referência; valor imutável), `Pagamento` (REGISTADO → CONFIRMADO → ESTORNADO, ou REGISTADO → ANULADO), `AlocacaoPagamento` (chaves compostas garantem que pagamento e encargo são do mesmo estudante), `Estorno`/`EstornoAlocacao` (movimento inverso), `SerieRecibo` (contador por série e ano) e `Recibo` (único por pagamento e por série+ano+número).
+
+- Todos os valores em `BIGINT` cêntimos, com `CHECK` de limites (≤ 10^12) e positividade.
+- Vista `VistaEncargo` (pago = Σ alocações − Σ movimentos inversos). O estado do encargo (pendente/parcial/pago/vencido/anulado) calcula-se com `estadoEncargo` e o dia de hoje em Africa/Luanda.
+- **Saldo** (nunca guardado): em dívida = Σ encargos activos − Σ alocações líquidas; crédito = Σ (pagamento − estornado − alocado líquido) dos pagamentos confirmados.
+- Funções de reconciliação: `reconciliacao_financeira(estudantes)` e `reconciliacao_numeracao()` (vazio = coerente).

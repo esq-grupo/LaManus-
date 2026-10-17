@@ -27,7 +27,8 @@
 | Validar/publicar pauta | ✏️ | — | — | — | — | — | — | — | — |
 | Corrigir nota depois de publicada (com motivo) | ✏️ | — | — | — | — | — | — | — | — |
 | Ver notas | 👁 | 👁 | — | 👁 suas turmas | — | 👁 | 👁 publicadas | 👁 publicadas | — |
-| Encargos / pagamentos | 👁 | 👁 | ✏️ | — | — | — | 👁 próprio | 👁 educandos | — |
+| Encargos / pagamentos (registar) | 👁 | 👁 | ✏️ | — | — | — | 👁 próprio | 👁 educandos | — |
+| Confirmar pagamento (emite recibo) | ✏️ (≠ quem registou) | — | — | — | — | — | — | — | — |
 | Estornos | aprova | — | propõe | — | — | — | — | — | — |
 | Declarações | aprova | ✏️ emite | — | — | — | — | pede/👁 | pede/👁 | — |
 | Utilizadores e papéis | 👁 | — | — | — | — | — | — | — | ✏️ |
@@ -168,3 +169,23 @@ Direcção, Secretaria, Qualidade: tudo (com o estado). Docente: só as suas dis
 - Testado com a ligação da aplicação: token inventado/curto/nulo; o **hash lido de `Session`** (não autentica); sessão válida **sem** a permissão (8 papéis); sessão revogada, expirada, inactiva (> 30 min) e conta desactivada; chamada com o UUID de um utilizador (já não existe esse parâmetro); o autor registado é o dono do token, e o token nunca aparece na auditoria.
 - **Operação:** não activar o registo de parâmetros das consultas (`log_statement`/`log_parameter`) no PostgreSQL de produção, porque o token da sessão é passado como parâmetro.
 - **Limite (importante):** o sistema **ainda não está protegido contra quem consiga executar SQL arbitrário com o papel `lamanus_app`**: esse acesso permite criar sessões, alterar papéis e inserir eventos de auditoria falsos; a ausência de um evento `LOGIN_OK` não é prova de nada. O isolamento dessas operações é **trabalho de segurança obrigatório da Entrega H** (ADR-0003, decisão 13). Até lá, não se deve alegar protecção contra o comprometimento do papel da aplicação.
+
+
+## 10. Estado de implementação — Entrega E (2026-10-17)
+
+Desenho: `docs/decisions/ADR-0004-financeiro.md`. Dinheiro sempre em cêntimos (`BigInt`).
+
+### Garantias (na base de dados, não só no código)
+- **Livro imutável.** `Pagamento`, `AlocacaoPagamento`, `Estorno`, `EstornoAlocacao`, `Recibo` e `SerieRecibo` não têm `INSERT/UPDATE/DELETE/TRUNCATE` para a aplicação (`prisma/grants.sql`); gatilhos repetem a regra (valor e dados nunca mudam, nem para o dono; transições de estado válidas; alocações nunca excedem o pagamento nem o encargo, com linhas bloqueadas).
+- **Só por procedimentos autorizados.** `registar_pagamento`, `anular_pagamento`, `confirmar_pagamento`, `alocar_pagamento_manual`, `propor_estorno`, `rejeitar_estorno`, `aprovar_estorno` (SECURITY DEFINER) autenticam o autor pelo **token da sessão** (mesmo mecanismo da correcção de notas; sem argumento «autor»), verificam a permissão, mudam os dados e gravam a auditoria na mesma transacção.
+- **Controlo duplo.** Quem regista não confirma (`pagamento:confirmar`, Direcção); quem propõe um estorno não o aprova (`estorno:aprovar`, Direcção). Verificado na função **e** por restrição `CHECK`.
+- **Recibos sem saltos.** Número `R/ano/n.º` tirado de uma linha-contador bloqueada (`FOR UPDATE`) na mesma transacção da confirmação: concorrência não duplica, falha reverte o número.
+- **Saldo sempre calculado** (vista `VistaEncargo` e funções); crédito = excedente ainda não alocado. Encargos nunca se editam (anulam-se, com motivo, se não tiverem pagamentos líquidos).
+- **Reconciliação** em SQL (`reconciliacao_financeira`, `reconciliacao_numeracao`) e visível na página de relatórios.
+- **Leitura por escopo financeiro** (`escopoFinanceiro`): gestão (Direcção/Secretaria/Financeiro) todos; Estudante o próprio; Encarregado educandos verificados, com autorização activa e dentro da validade. Quem acumula Docente + Encarregado **não** ganha as contas dos alunos que ensina. O PDF do recibo verifica sessão, permissão e escopo em cada descarga (`/recibos/<id>`; resposta 404 igual para «não existe» e «sem acesso»; descarga auditada).
+
+### Limitações conhecidas (Entrega E)
+- Mesmo limite do ADR-0003 (decisão 13): quem consiga correr SQL arbitrário com `lamanus_app` pode criar sessões/papéis; o isolamento de sessões, papéis e auditoria é **trabalho obrigatório da Entrega H**. Para o dinheiro, o limite é o mesmo: as funções confiam na tabela `Session`.
+- «Quem confirma pagamentos» está **provisório** (Direcção, pessoa diferente de quem registou): decisão de negócio pendente do PO.
+- Sem multa por atraso, sem referência multibanco e sem exportação CSV (fora do âmbito da Entrega E).
+- Os testes apagam recibos de dados de teste com a ligação do dono, por isso a verificação global da numeração (`reconciliacao_numeracao`) só se aplica a bases sem limpeza de testes (produção).

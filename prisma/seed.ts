@@ -235,6 +235,16 @@ async function main() {
     await avancar(p1.id, "PUBLICADA");
     await avancar(p2.id, "VALIDADA");
   }
+  // Tipo de encargo fictício (valor de referência: 50 000 Kz = 5 000 000 cêntimos).
+  await db.tipoEncargo.upsert({
+    where: { nome: "Propina mensal (fictício)" },
+    update: {},
+    create: {
+      nome: "Propina mensal (fictício)",
+      valorReferencia: 5_000_000n,
+      periodicidade: "MENSAL",
+    },
+  });
   console.log("Seed fictício concluído.");
 }
 

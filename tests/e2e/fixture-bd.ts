@@ -18,3 +18,5 @@ function correr(...args: string[]): unknown {
 export const criarFixture = (senha: string) => correr("criar", senha) as FixtureAvaliacao;
 export const limparFixture = (fx: FixtureAvaliacao) =>
   void correr("limpar", JSON.stringify(fx.ids));
+
+export const limparFinanceiro = () => void correr("financeiro-limpar");

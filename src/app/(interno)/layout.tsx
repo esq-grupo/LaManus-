@@ -1,6 +1,7 @@
 import { CabecalhoArea } from "@/components/CabecalhoArea";
 import { exigirArea } from "@/server/auth/dal";
 import { can } from "@/server/authz";
+import { veFinanceiroCompleto } from "@/server/authz/scope";
 
 // A verificação autoritativa acontece aqui (servidor, BD), não no proxy.
 export default async function Layout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,9 @@ export default async function Layout({ children }: { children: React.ReactNode }
             : []),
           ...(can(user, "estudantes:ver")
             ? [{ href: "/interno/estudantes", texto: "Estudantes" }]
+            : []),
+          ...(veFinanceiroCompleto(user)
+            ? [{ href: "/interno/financeiro", texto: "Financeiro" }]
             : []),
           ...(can(user, "utilizadores:ver")
             ? [{ href: "/interno/utilizadores", texto: "Utilizadores" }]

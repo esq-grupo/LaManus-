@@ -30,3 +30,10 @@ Esta é a entrega de maior risco: erros aqui são erros de dinheiro. Princípios
 
 ## Limites
 Aplicam-se os do ADR-0003 (decisão 13): quem tiver SQL arbitrário com o papel da aplicação pode criar sessões e papéis; o isolamento é trabalho obrigatório da Entrega H. Sem gateways de pagamento (D7) nem multas; sem notificações (Entrega F).
+
+
+## Adenda de implementação (2026-10-17)
+- **Autoria em todos os movimentos.** Para que o controlo duplo não dependa de um «autor» passado pela aplicação, também `registar_pagamento`, `anular_pagamento`, `propor_estorno` e `rejeitar_estorno` são funções que autenticam o autor pela sessão; a aplicação deixou de ter escrita directa em `Pagamento` e `Estorno`.
+- **Alocação manual** serve também para atribuir o crédito de um pagamento automático a encargos criados depois.
+- **Encargos e tipos** (sem movimento de dinheiro) continuam a ser escritos pela aplicação, com auditoria na mesma transacção; o valor de um encargo nunca muda (gatilho).
+- **Permissão nova:** `pagamento:confirmar` (Direcção).
