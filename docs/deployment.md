@@ -6,7 +6,7 @@
 Três serviços em Docker Compose (`docker-compose.staging.yml`): **db** (PostgreSQL 16, sem porta aberta ao exterior), **app** (Next.js, imagem do `Dockerfile`, utilizador sem privilégios, sistema de ficheiros só de leitura) e **caddy** (HTTPS automático; única porta aberta: 80/443). A aplicação liga-se à base de dados com os papéis restritos `lamanus_app` (negócio) e `lamanus_auth` (autenticação); **nunca** com o dono (ADR-0008).
 
 ## 2. Requisitos
-Servidor Linux com Docker + Docker Compose, domínio público a apontar para o servidor (para o certificado Let's Encrypt), acesso SMTP (convites/recuperação de palavra-passe), disco para dados e cópias (idealmente cópias noutro disco/local), relógio sincronizado (NTP).
+Servidor Linux com Docker + Docker Compose, domínio público a apontar para o servidor (para o certificado Let's Encrypt), acesso SMTP (convites/recuperação de palavra-passe), disco para dados e cópias (idealmente cópias noutro disco/local), relógio sincronizado (NTP). Preencher os `SMTP_*` em `.env.staging` (servidor, porta 587/STARTTLS ou 465/`SMTP_SEGURO=sim`, utilizador, palavra-passe, remetente); sem eles o `app` nem arranca no Compose.
 
 ## 3. Primeira instalação
 1. Clonar o repositório e copiar `.env.staging.example` para `.env.staging` (`chmod 600`); preencher **segredos fortes e diferentes** (dono, `lamanus_app`, `lamanus_auth`) e o domínio. Nunca fazer commit deste ficheiro.

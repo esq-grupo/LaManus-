@@ -46,6 +46,13 @@ services:
       APP_URL: ${APP_URL:?defina APP_URL em .env.staging}
       DATABASE_URL: postgresql://lamanus_app:${APP_DB_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
       AUTH_DATABASE_URL: postgresql://lamanus_auth:${AUTH_DB_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
+      # Email (convites e recuperação de palavra-passe): sem estes valores a aplicação recusa enviar em produção.
+      SMTP_HOST: ${SMTP_HOST:?defina SMTP_HOST em .env.staging}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SEGURO: ${SMTP_SEGURO:-nao}
+      SMTP_UTILIZADOR: ${SMTP_UTILIZADOR:-}
+      SMTP_PALAVRA_PASSE: ${SMTP_PALAVRA_PASSE:-}
+      SMTP_REMETENTE: ${SMTP_REMETENTE:?defina SMTP_REMETENTE em .env.staging}
     depends_on:
       db: { condition: service_healthy }
     networks: [interna]

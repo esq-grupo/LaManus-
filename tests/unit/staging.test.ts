@@ -37,6 +37,12 @@ describe("docker-compose.staging.yml", () => {
       "AUTH_DATABASE_URL",
       "DATABASE_URL",
       "NODE_ENV",
+      "SMTP_HOST",
+      "SMTP_PALAVRA_PASSE",
+      "SMTP_PORT",
+      "SMTP_REMETENTE",
+      "SMTP_SEGURO",
+      "SMTP_UTILIZADOR",
     ]);
     expect(app.environment!.DATABASE_URL).toContain("postgresql://lamanus_app:");
     expect(app.environment!.AUTH_DATABASE_URL).toContain("postgresql://lamanus_auth:");
@@ -74,6 +80,8 @@ describe(".env.staging.example", () => {
       "APP_DB_PASSWORD",
       "AUTH_DB_PASSWORD",
       "APP_URL",
+      "SMTP_HOST",
+      "SMTP_REMETENTE",
     ])
       expect(t).toContain(chave);
     for (const linha of t.split("\n").filter((l) => /PASSWORD=/.test(l)))

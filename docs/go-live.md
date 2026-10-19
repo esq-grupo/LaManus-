@@ -4,7 +4,8 @@ Marque só quando verificado. Itens com ✱ dependem da escola.
 
 ## Antes de instalar
 - [ ] ✱ PO autoriza a instalação em staging e, depois, em produção
-- [ ] ✱ Servidor, domínio e SMTP da escola disponíveis (docs/deployment.md §2)
+- [ ] ✱ Servidor, domínio e SMTP da escola disponíveis (docs/deployment.md §2); `SMTP_*` preenchidos em `.env.staging`
+- [ ] Email validado em staging: convite e recuperação de palavra-passe chegam e funcionam
 - [ ] Papéis da BD criados com palavras-passe **diferentes**; `.env.staging` com permissões 600
 - [ ] `npm run db:preflight` sem problemas na base com dados
 

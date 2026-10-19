@@ -3,8 +3,8 @@
 Para quem executa: Administrador técnico da escola (servidor) e Secretaria/Direcção (dados e aceitação). Cada passo diz **o que fazer**, **o que deve aparecer** e **que prova guardar** (sem dados pessoais: ecrãs sem nomes, ou relatórios mascarados).
 Referências: `docs/deployment.md`, `docs/migration-excel.md`, `docs/go-live.md`, `docs/runbook-incidentes.md`.
 
-## 0. Antes de começar — pendência de código conhecida
-- **Envio de email (SMTP) ainda NÃO está implementado.** Em produção a aplicação recusa enviar convites e recuperações de palavra-passe (`src/server/auth/mailer.ts`, decisão D11 pendente). Sem isto, a conta inicial funciona (link do `admin:inicial`), mas o convite de novos utilizadores e a recuperação de palavra-passe **não**. Resolve-se numa entrega curta quando a escola indicar o serviço de email (servidor SMTP, porta, utilizador). Até lá, a escola entrega o link de definição de palavra-passe em mão.
+## 0. Email (D11) — implementado, falta validar com o serviço da escola
+O envio por SMTP está implementado e testado no CI com um servidor de email falso. **A escola indica:** servidor SMTP, porta (587 com STARTTLS ou 465 com TLS directo), utilizador, palavra-passe e o endereço de remetente. Preenchem-se em `.env.staging` (`SMTP_*`). A cifra é obrigatória em produção. Em staging (passo 1.9) confirma-se que chega um convite e uma recuperação de palavra-passe a uma caixa de ensaio.
 
 ## 1. Servidor (Administrador técnico) — 1 a 2 horas
 | # | Passo | Deve aparecer | Prova |
@@ -17,6 +17,7 @@ Referências: `docs/deployment.md`, `docs/migration-excel.md`, `docs/go-live.md`
 | 1.6 | `npm run verificar:privilegios` com as três ligações reais | **«Privilégios correctos»** | A linha de resultado. Se falhar: parar e enviar a lista |
 | 1.7 | `admin:inicial` e subir `app caddy` | `https://<domínio>/login` com cadeado | Captura do ecrã |
 | 1.8 | Confirmar que o registo de parâmetros do PostgreSQL está desligado | `log_statement` ≠ `all`; sem `log_parameter_max_length` | Texto de `SHOW` |
+| 1.9 | Email: criar um utilizador de ensaio na aplicação e pedir «Esqueci-me da palavra-passe» | O convite e a recuperação chegam à caixa de ensaio, com o link do domínio real e válido 30 minutos | Captura do email (sem dados pessoais) |
 
 ## 2. Cópias e restauro (Administrador técnico) — 1 hora
 1. Guardar a frase de cifra em local **separado** (cofre/papel) e agendar o `cron` diário (`deployment.md` §6).
@@ -56,7 +57,7 @@ Lighthouse móvel em `/login` e na área do Estudante, **com HTTPS real**. Alvo:
 2. Qualquer ✘ com o texto exacto do erro (sem dados pessoais).
 3. Lista de cabeçalhos dos Excel reais (para ajustar o mapeamento).
 4. Reconciliação assinada e aceitação formal assinada.
-5. Dados do serviço de email (para fechar a pendência da secção 0).
+5. Os valores `SMTP_*` (por canal seguro, nunca em chat/email aberto).
 Só então se pede a revisão final do Codex à Entrega H4 e o OK do PO.
 
 ## Modelo de reconciliação
