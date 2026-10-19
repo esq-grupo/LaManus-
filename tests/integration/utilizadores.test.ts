@@ -11,9 +11,18 @@ import {
   contarUtilizadores,
   revogarSessoesDe,
 } from "@/server/modules/utilizadores";
-import { db, dbAdmin, criarUser, limparUser, PASSWORD_TESTE, prepararBd } from "./ajuda";
+import {
+  abrirSessao,
+  db,
+  dbAdmin,
+  criarUser,
+  limparUser,
+  PASSWORD_TESTE,
+  prepararBd,
+} from "./ajuda";
 
 const criados: string[] = [];
+const ctx = async (u: { email: string }) => ({ tokenSessao: await abrirSessao(u.email) });
 const principal = async (papeis: Parameters<typeof criarUser>[0]) => {
   const u = await criarUser(papeis);
   criados.push(u.id);
@@ -43,19 +52,25 @@ describe("gestão de utilizadores — negativos de permissão", () => {
     ] as const) {
       const actor = await principal([papel]);
       await expect(
-        criarUtilizador(actor, {
-          nome: "Alguém Novo",
-          email: `n-${papel}@teste.lamanu.test`,
-          papeis: ["DOCENTE"],
-        }),
+        criarUtilizador(
+          actor,
+          {
+            nome: "Alguém Novo",
+            email: `n-${papel}@teste.lamanu.test`,
+            papeis: ["DOCENTE"],
+          },
+          await ctx(actor),
+        ),
       ).rejects.toBeInstanceOf(ErroAutorizacao);
-      await expect(alterarPapeis(actor, alvo.id, ["DIRECCAO"])).rejects.toBeInstanceOf(
+      await expect(
+        alterarPapeis(actor, alvo.id, ["DIRECCAO"], await ctx(actor)),
+      ).rejects.toBeInstanceOf(ErroAutorizacao);
+      await expect(
+        definirEstado(actor, alvo.id, "DESACTIVADO", await ctx(actor)),
+      ).rejects.toBeInstanceOf(ErroAutorizacao);
+      await expect(revogarSessoesDe(actor, alvo.id, await ctx(actor))).rejects.toBeInstanceOf(
         ErroAutorizacao,
       );
-      await expect(definirEstado(actor, alvo.id, "DESACTIVADO")).rejects.toBeInstanceOf(
-        ErroAutorizacao,
-      );
-      await expect(revogarSessoesDe(actor, alvo.id)).rejects.toBeInstanceOf(ErroAutorizacao);
     }
   });
 
@@ -72,11 +87,11 @@ describe("gestão de utilizadores — negativos de permissão", () => {
   it("o Admin técnico não altera os próprios papéis nem a própria conta (separação de funções) e fica auditado", async () => {
     const admin = await principal(["ADMIN_TECNICO"]);
     await expect(
-      alterarPapeis(admin, admin.id, ["ADMIN_TECNICO", "DIRECCAO"]),
+      alterarPapeis(admin, admin.id, ["ADMIN_TECNICO", "DIRECCAO"], await ctx(admin)),
     ).rejects.toBeInstanceOf(ErroAutorizacao);
-    await expect(definirEstado(admin, admin.id, "DESACTIVADO")).rejects.toBeInstanceOf(
-      ErroAutorizacao,
-    );
+    await expect(
+      definirEstado(admin, admin.id, "DESACTIVADO", await ctx(admin)),
+    ).rejects.toBeInstanceOf(ErroAutorizacao);
     const ev = await db.eventoAuditoria.findMany({
       where: { actorId: admin.id, acao: "ACESSO_NEGADO" },
     });
@@ -108,7 +123,11 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
   it("cria utilizador sem nunca definir password; audita; email duplicado recusado", async () => {
     const admin = await principal(["ADMIN_TECNICO"]);
     const email = `novo-${Date.now()}@teste.lamanu.test`;
-    const id = await criarUtilizador(admin, { nome: "Pessoa Nova", email, papeis: ["SECRETARIA"] });
+    const id = await criarUtilizador(
+      admin,
+      { nome: "Pessoa Nova", email, papeis: ["SECRETARIA"] },
+      await ctx(admin),
+    );
     criados.push(id);
     const ev = await db.eventoAuditoria.findFirst({
       where: { acao: "UTILIZADOR_CRIADO", entidadeId: id },
@@ -116,7 +135,11 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
     expect(ev?.actorId).toBe(admin.id);
     expect(JSON.stringify(ev)).not.toMatch(/passwordHash|argon2/);
     await expect(
-      criarUtilizador(admin, { nome: "Pessoa Nova", email, papeis: ["SECRETARIA"] }),
+      criarUtilizador(
+        admin,
+        { nome: "Pessoa Nova", email, papeis: ["SECRETARIA"] },
+        await ctx(admin),
+      ),
     ).rejects.toThrow();
     // A conta nova não consegue entrar com palavras-passe adivinhadas.
     expect((await iniciarSessao(email, PASSWORD_TESTE)).ok).toBe(false);
@@ -132,7 +155,11 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
     });
     try {
       await expect(
-        criarUtilizador(admin, { nome: "Pessoa Sem Email", email, papeis: ["SECRETARIA"] }),
+        criarUtilizador(
+          admin,
+          { nome: "Pessoa Sem Email", email, papeis: ["SECRETARIA"] },
+          await ctx(admin),
+        ),
       ).rejects.toThrow(/Reenviar link/);
     } finally {
       definirMailer({ enviar: async () => undefined });
@@ -152,13 +179,14 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
     const alvo = await principal(["DOCENTE"]);
     const sessao = await iniciarSessao(alvo.email, PASSWORD_TESTE);
     if (!sessao.ok) throw new Error("login falhou");
-    await alterarPapeis(admin, alvo.id, ["FINANCEIRO"]);
+    await alterarPapeis(admin, alvo.id, ["FINANCEIRO"], await ctx(admin));
     expect((await validarSessao(sessao.token))?.papeis).toEqual(["FINANCEIRO"]);
     const ev = await db.eventoAuditoria.findFirst({
       where: { acao: "PAPEIS_ALTERADOS", entidadeId: alvo.id },
     });
     expect(ev?.antes).toEqual({ papeis: ["DOCENTE"] });
-    expect(ev?.depois).toEqual({ papeis: ["FINANCEIRO"] });
+    expect(ev?.depois).toMatchObject({ papeis: ["FINANCEIRO"] });
+    expect(ev?.origem).toBe("BD"); // escrito pela função da BD que autenticou o autor pela sessão
   });
 
   it("desactivar termina as sessões abertas", async () => {
@@ -166,14 +194,14 @@ describe("gestão de utilizadores — fluxos permitidos", () => {
     const alvo = await principal(["DOCENTE"]);
     const s = await iniciarSessao(alvo.email, PASSWORD_TESTE);
     if (!s.ok) throw new Error("login falhou");
-    await definirEstado(admin, alvo.id, "DESACTIVADO");
+    await definirEstado(admin, alvo.id, "DESACTIVADO", await ctx(admin));
     expect(await validarSessao(s.token)).toBeNull();
   });
 });
 
 describe("auditoria é só de inserção", () => {
   it("a aplicação NÃO consegue alterar, apagar nem fazer TRUNCATE de eventos (sem privilégio); nem o dono, por gatilho", async () => {
-    const ev = await db.eventoAuditoria.create({ data: { acao: "TESTE", entidade: "Teste" } });
+    const ev = await dbAdmin.eventoAuditoria.create({ data: { acao: "TESTE", entidade: "Teste" } });
     await expect(
       db.eventoAuditoria.update({ where: { id: ev.id }, data: { acao: "ALTERADO" } }),
     ).rejects.toThrow(/permission denied/);

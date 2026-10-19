@@ -10,3 +10,13 @@ BEGIN
   END IF;
 END $$;
 ALTER ROLE lamanus_app PASSWORD :'app_password';
+
+-- Papel do MÓDULO DE AUTENTICAÇÃO (ADR-0008): só ele escreve sessões, tentativas de login e recuperações de palavra-passe.
+--   psql -v app_password='…' -v auth_password='…' -f docker/db/papeis.sql
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'lamanus_auth') THEN
+    CREATE ROLE lamanus_auth LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
+END $$;
+ALTER ROLE lamanus_auth PASSWORD :'auth_password';

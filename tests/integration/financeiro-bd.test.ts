@@ -217,7 +217,7 @@ describe("financeiro — procedimentos autenticam o autor pela sessão", () => {
     await expect(registar(p.tDir, est.id, 1_00n)).rejects.toThrow(); // Direcção não tem financeiro:editar
     const pag = await registar(p.tFin, est.id, 100_00n);
     await expect(confirmar(p.tFin, pag)).rejects.toThrow(); // Financeiro não tem pagamento:confirmar
-    const hash = (await db.session.findFirst({ where: { userId: p.dir.id } }))!.tokenHash;
+    const hash = (await dbAdmin.session.findFirst({ where: { userId: p.dir.id } }))!.tokenHash;
     await expect(confirmar(hash, pag)).rejects.toThrow();
     await dbAdmin.session.updateMany({
       where: { userId: p.dir.id },

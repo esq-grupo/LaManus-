@@ -5,7 +5,7 @@ import { definirMailer, type Email } from "@/server/auth/mailer";
 import { pedirRecuperacao, redefinirPassword } from "@/server/auth/recuperacao";
 import { revogarSessaoPorToken, validarSessao } from "@/server/auth/sessao";
 import { hashToken } from "@/server/auth/tokens";
-import { db, criarUser, limparUser, PASSWORD_TESTE, prepararBd } from "./ajuda";
+import { db, criarUser, limparUser, PASSWORD_TESTE, prepararBd, dbAdmin } from "./ajuda";
 
 const criados: string[] = [];
 const emails: Email[] = [];
@@ -38,7 +38,7 @@ describe("login", () => {
     const u = await novo(["DOCENTE"]);
     const r = await iniciarSessao(u.email, PASSWORD_TESTE);
     if (!r.ok) throw new Error("login falhou");
-    const linhas = await db.session.findMany({ where: { userId: u.id } });
+    const linhas = await dbAdmin.session.findMany({ where: { userId: u.id } });
     expect(linhas.some((l) => l.tokenHash === r.token)).toBe(false);
     expect(linhas.some((l) => l.tokenHash === hashToken(r.token))).toBe(true);
   });
@@ -89,7 +89,7 @@ describe("login", () => {
   it("depois de o bloqueio expirar, o contador recomeça (uma falha não volta a bloquear)", async () => {
     const u = await novo(["DOCENTE"]);
     for (let i = 0; i < AUTH.maxFalhasConta; i++) await iniciarSessao(u.email, "errada-errada-1");
-    await db.user.update({
+    await dbAdmin.user.update({
       where: { id: u.id },
       data: { bloqueadoAte: new Date(Date.now() - 1000) },
     });
@@ -111,7 +111,7 @@ describe("login", () => {
     const ip = `203.0.113.${Math.floor(Math.random() * 250)}-t${Date.now()}`;
     const u = await novo(["DOCENTE"]);
     for (let i = 0; i < AUTH.maxFalhasIp; i++)
-      await db.tentativaLogin.create({ data: { identificador: "x", ip, sucesso: false } });
+      await dbAdmin.tentativaLogin.create({ data: { identificador: "x", ip, sucesso: false } });
     expect(await iniciarSessao(u.email, PASSWORD_TESTE, { ip })).toEqual({
       ok: false,
       motivo: "LIMITE_IP",
@@ -141,7 +141,7 @@ describe("sessões", () => {
     const u = await novo(["DIRECCAO"]);
     const r = await iniciarSessao(u.email, PASSWORD_TESTE);
     if (!r.ok) throw new Error("login falhou");
-    await db.user.update({ where: { id: u.id }, data: { estado: "DESACTIVADO" } });
+    await dbAdmin.user.update({ where: { id: u.id }, data: { estado: "DESACTIVADO" } });
     expect(await validarSessao(r.token)).toBeNull();
   });
 
@@ -150,12 +150,12 @@ describe("sessões", () => {
     const r = await iniciarSessao(u.email, PASSWORD_TESTE);
     if (!r.ok) throw new Error("login falhou");
     const h = hashToken(r.token);
-    await db.session.update({
+    await dbAdmin.session.update({
       where: { tokenHash: h },
       data: { ultimaActividade: new Date(Date.now() - AUTH.sessaoInactividadeMs - 1000) },
     });
     expect(await validarSessao(r.token)).toBeNull();
-    await db.session.update({
+    await dbAdmin.session.update({
       where: { tokenHash: h },
       data: { ultimaActividade: new Date(), expiraEm: new Date(Date.now() - 1000) },
     });
@@ -172,7 +172,7 @@ describe("sessões", () => {
     const u = await novo(["SECRETARIA"]);
     const r = await iniciarSessao(u.email, PASSWORD_TESTE);
     if (!r.ok) throw new Error("login falhou");
-    await db.userRole.deleteMany({ where: { userId: u.id } });
+    await dbAdmin.userRole.deleteMany({ where: { userId: u.id } });
     expect((await validarSessao(r.token))?.papeis).toEqual([]);
   });
 
@@ -235,7 +235,7 @@ describe("recuperação de conta", () => {
     emails.length = 0;
     await pedirRecuperacao(u.email);
     const token = emails[0]!.texto.match(/redefinir\/([\w-]+)/)![1]!;
-    await db.passwordReset.updateMany({
+    await dbAdmin.passwordReset.updateMany({
       where: { tokenHash: hashToken(token) },
       data: { expiraEm: new Date(Date.now() - 1000) },
     });

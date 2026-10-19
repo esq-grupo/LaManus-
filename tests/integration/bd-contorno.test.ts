@@ -281,7 +281,7 @@ describe("achado (revisão 2) — a base de dados autentica e autoriza o autor p
   it("ler o hash da tabela Session NÃO serve de credencial (só o token em claro autentica)", async () => {
     const x = await montar();
     await abrirSessao(x.direccao.email);
-    const sessoes = await db.session.findMany({ where: { userId: x.direccao.id } });
+    const sessoes = await dbAdmin.session.findMany({ where: { userId: x.direccao.id } });
     expect(sessoes.length).toBeGreaterThan(0);
     for (const sessao of sessoes)
       await expect(chamarComToken(x.nota1.id, 1700, sessao.tokenHash)).rejects.toThrow(
@@ -314,7 +314,7 @@ describe("achado (revisão 2) — a base de dados autentica e autoriza o autor p
   it("sessão da Direcção revogada, expirada, inactiva ou de conta desactivada → recusado", async () => {
     const x = await montar();
     const token = await abrirSessao(x.direccao.email);
-    const sessao = await db.session.findFirstOrThrow({
+    const sessao = await dbAdmin.session.findFirstOrThrow({
       where: { userId: x.direccao.id },
       orderBy: { createdAt: "desc" },
     });

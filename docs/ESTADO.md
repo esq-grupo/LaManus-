@@ -12,14 +12,22 @@ Actualizado: 2026-10-17
 - **Entrega D:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 3 + OK do PO em 2026-10-17).
 - **Entrega E:** FECHADA (Codex APROVADO na revisão n.º 3 + OK do PO em 2026-10-17).
 - **Entrega F:** FECHADA (Codex APROVADO COM RESSALVAS, corrigida + OK do PO em 2026-10-19).
-- **Entrega actual:** G — Pedidos e documentos (implementada; a aguardar CI, Codex e OK do PO).
+- **Entrega G:** FECHADA (Codex APROVADO na revisão n.º 2 + OK do PO em 2026-10-19).
+- **Entrega actual:** H — Migração e piloto (em curso; H1 feita).
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
+
+## Entrega H — em curso (OK do PO em 2026-10-19: Entrega G FECHADA)
+- [x] H1 — Isolamento de sessões, papéis e auditoria (ADR-0008): papel `lamanus_auth`, funções de contas, auditoria com origem; testes de ataque
+- [ ] H2 — Importador Excel (ensaio com ficheiros FICTÍCIOS; relatório de importadas/rejeitadas/transformadas; reconciliação)
+- [ ] H3 — Backup e restauro testados, deploy em staging com TLS, `docs/deployment.md` e runbook de incidentes
+- [ ] H4 — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
 
 ## PWA (pedido do PO, 2026-10-19)
 - [x] Manifesto, ícones, service worker mínimo (só `/offline`), convite de instalação, entrada directa na área
 - [x] Testes: 262 vitest (inclui `pwa.test.ts`), 32 e2e (inclui `pwa.spec.ts`); em produção o service worker regista-se e a cache só tem `/offline`
-- [ ] CI e revisão Codex (a incluir na próxima ronda)
+- [x] CI verde à 1.ª tentativa (execução 39287331279, commit f3e0c41)
+- [ ] Revisão Codex (revisão separada, pedida pelo Codex)
 
 ## Tarefas da Entrega G
 - [x] Pedidos de declaração (matrícula, frequência, situação financeira) pelo portal e na secretaria
@@ -30,7 +38,7 @@ Actualizado: 2026-10-17
 - [x] Codex: APROVADO COM RESSALVAS (2 corridas) — corrigidas (migração 20261019110000, emissão numa só transacção)
 - [x] CI da correcção verde à 1.ª tentativa (execução 39285221570)
 - [x] Codex: APROVADO (revisão n.º 2, commit 7ddbbc5)
-- [ ] OK do PO para fechar a G e iniciar a H
+- [x] OK do PO (2026-10-19): Entrega G FECHADA
 
 ## Tarefas da Entrega F
 - [x] Portais mobile-first (estudante e encarregado): notas publicadas, contas, recibos PDF

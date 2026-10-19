@@ -23,6 +23,11 @@ export function sanitizar(valor: unknown): Prisma.InputJsonValue | undefined {
   return limpar(valor);
 }
 
+function jsonOuNulo(v: unknown): string | null {
+  const limpo = sanitizar(v);
+  return limpo === undefined ? null : JSON.stringify(limpo);
+}
+
 export interface EventoAuditoriaInput {
   actorId?: string | null;
   acao: string;
@@ -34,7 +39,7 @@ export interface EventoAuditoriaInput {
 }
 
 /** Cliente mínimo necessário: aceita o `db` normal ou o cliente de uma transacção (`tx`). */
-export type ClienteAuditoria = { eventoAuditoria: PrismaClient["eventoAuditoria"] };
+export type ClienteAuditoria = Pick<PrismaClient, "$executeRaw">;
 
 /**
  * Regista o evento. Para alterações críticas passe o `tx` da transacção que faz a alteração: assim a alteração e
@@ -44,17 +49,8 @@ export async function registarAuditoria(
   e: EventoAuditoriaInput,
   cliente: ClienteAuditoria = db,
 ): Promise<void> {
-  await cliente.eventoAuditoria.create({
-    data: {
-      actorId: e.actorId ?? null,
-      acao: e.acao,
-      entidade: e.entidade,
-      entidadeId: e.entidadeId ?? null,
-      antes: sanitizar(e.antes),
-      depois: sanitizar(e.depois),
-      ip: e.ip ?? null,
-    },
-  });
+  // Só por esta função da BD (hora e origem fixadas pelo servidor): a aplicação não tem INSERT directo na auditoria (ADR-0008).
+  await cliente.$executeRaw`SELECT registar_evento_app(${e.actorId ?? null}::uuid, ${e.acao}, ${e.entidade}, ${e.entidadeId ?? null}, ${jsonOuNulo(e.antes)}::jsonb, ${jsonOuNulo(e.depois)}::jsonb, ${e.ip ?? null})`;
 }
 
 /**

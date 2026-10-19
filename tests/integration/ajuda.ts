@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/generated/prisma/client";
 import { sincronizarPapeisEPermissoes } from "@/server/authz/sincronizar";
 import { hashPassword } from "@/server/auth/password";
 import type { Papel } from "@/server/authz";
@@ -23,11 +21,8 @@ export const dbAdmin = criarClienteAdmin();
 let sincronizado = false;
 export async function prepararBd() {
   if (sincronizado) return;
-  const cliente = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
-  });
-  await sincronizarPapeisEPermissoes(cliente);
-  await cliente.$disconnect();
+  // Papéis e permissões só os escreve o dono da BD (ADR-0008): a aplicação só os lê.
+  await sincronizarPapeisEPermissoes(dbAdmin);
   sincronizado = true;
 }
 
@@ -38,7 +33,7 @@ export async function criarUser(
   await prepararBd();
   const roles = await db.role.findMany({ where: { codigo: { in: papeis } } });
   const email = `t-${randomUUID().slice(0, 8)}@teste.lamanu.test`;
-  const user = await db.user.create({
+  const user = await dbAdmin.user.create({
     data: {
       email,
       nome: "Utilizador de Teste",
@@ -51,8 +46,8 @@ export async function criarUser(
 }
 
 export async function limparUser(id: string) {
-  await db.session.deleteMany({ where: { userId: id } });
-  await db.user.delete({ where: { id } }).catch(() => undefined);
+  await dbAdmin.session.deleteMany({ where: { userId: id } });
+  await dbAdmin.user.delete({ where: { id } }).catch(() => undefined);
 }
 
 /**

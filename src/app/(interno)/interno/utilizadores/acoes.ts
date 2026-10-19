@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ipDoPedido, exigirPermissao } from "@/server/auth/dal";
+import { ipDoPedido, exigirPermissao, tokenDaSessao } from "@/server/auth/dal";
 import { PAPEIS } from "@/server/authz";
 import {
   ErroAutorizacao,
@@ -41,7 +41,7 @@ export async function acaoCriar(_: Resultado | undefined, f: FormData): Promise<
     await criarUtilizador(
       actor,
       { nome: f.get("nome"), email: f.get("email"), papeis: papeisDe(f) },
-      ip,
+      { tokenSessao: await tokenDaSessao(), ip },
     );
     return "Utilizador criado. Enviámos-lhe um link para definir a palavra-passe.";
   });
@@ -52,7 +52,10 @@ export async function acaoCriar(_: Resultado | undefined, f: FormData): Promise<
 export async function acaoPapeis(_: Resultado | undefined, f: FormData): Promise<Resultado> {
   const actor = await exigirPermissao("utilizadores:gerir");
   const r = await executar(async () => {
-    await alterarPapeis(actor, String(f.get("id")), papeisDe(f), await ipDoPedido());
+    await alterarPapeis(actor, String(f.get("id")), papeisDe(f), {
+      tokenSessao: await tokenDaSessao(),
+      ip: await ipDoPedido(),
+    });
     return "Papéis actualizados.";
   });
   revalidatePath("/interno/utilizadores");
@@ -63,7 +66,10 @@ export async function acaoEstado(_: Resultado | undefined, f: FormData): Promise
   const actor = await exigirPermissao("utilizadores:gerir");
   const estado = f.get("estado") === "ACTIVO" ? "ACTIVO" : "DESACTIVADO";
   const r = await executar(async () => {
-    await definirEstado(actor, String(f.get("id")), estado, await ipDoPedido());
+    await definirEstado(actor, String(f.get("id")), estado, {
+      tokenSessao: await tokenDaSessao(),
+      ip: await ipDoPedido(),
+    });
     return estado === "ACTIVO" ? "Conta reactivada." : "Conta desactivada e sessões terminadas.";
   });
   revalidatePath("/interno/utilizadores");
@@ -73,7 +79,10 @@ export async function acaoEstado(_: Resultado | undefined, f: FormData): Promise
 export async function acaoRevogar(_: Resultado | undefined, f: FormData): Promise<Resultado> {
   const actor = await exigirPermissao("utilizadores:gerir");
   const r = await executar(async () => {
-    const n = await revogarSessoesDe(actor, String(f.get("id")), await ipDoPedido());
+    const n = await revogarSessoesDe(actor, String(f.get("id")), {
+      tokenSessao: await tokenDaSessao(),
+      ip: await ipDoPedido(),
+    });
     return `${n} sessão(ões) terminada(s).`;
   });
   revalidatePath("/interno/utilizadores");

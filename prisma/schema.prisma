@@ -199,6 +199,7 @@ model EventoAuditoria {
   depois     Json?
   ip         String?
   em         DateTime @default(now())
+  origem     String   @default("BD")
 
   @@index([actorId])
   @@index([acao, em])

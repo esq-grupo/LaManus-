@@ -44,3 +44,6 @@ O erro mais grave possível nesta entrega é **um estudante ou encarregado ver u
 
 ## Impacto
 Migrações `20261016100000_avaliacao` (tabelas novas, sem dados existentes: não precisa de pré-verificação) e `20261016200000_blindar_pautas` (funções e gatilhos). Nova permissão `notas:corrigir` (Direcção). **Operação:** em staging/produção a aplicação tem de usar o papel `lamanus_app` (ver `docs/migracoes.md`); se correr como dono, as protecções por SQL directo deixam de valer.
+
+## Adenda (2026-10-20)
+A decisão 13 foi tratada na Entrega H (ADR-0008): sessões, papéis e auditoria passaram a estar fora do alcance da ligação de negócio.

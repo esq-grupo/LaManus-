@@ -229,3 +229,20 @@ Desenho: `docs/decisions/ADR-0006-pedidos-e-documentos.md`. Tipos de declaraçã
 
 ## 13. PWA (2026-10-19)
 Desenho: `docs/decisions/ADR-0007-pwa.md`. Garantias testadas: o service worker só guarda `/offline` (teste de unidade sobre o código e e2e que navega por páginas e descarrega PDFs com o service worker activo e confirma que a cache só tem `/offline`; mutação — passar a guardar respostas — detectada pelos dois); `/offline` é pública e sem dados pessoais; `sw.js` sem cache do navegador; manifesto e ícones válidos (PNG, tamanhos certos). Limitações: sem push; sem uso offline dos dados; iPhone instala-se pelo menu «Partilhar» do Safari.
+
+## 14. Isolamento de sessões, papéis e auditoria (Entrega H, parte 1 — 2026-10-20)
+Desenho: `docs/decisions/ADR-0008-isolamento-sessoes-papeis-auditoria.md`. Fecha o trabalho obrigatório deixado pela decisão 13 do ADR-0003.
+
+### O que mudou
+- **Três papéis na BD:** dono, `lamanus_app` (negócio) e `lamanus_auth` (autenticação). Só o código de `src/server/auth/*` usa a ligação `AUTH_DATABASE_URL`.
+- **`lamanus_app` já não pode:** tocar em `Session`, `PasswordReset`, `TentativaLogin`; escrever em `User`, `UserRole`, `Role`, `Permission`, `RolePermission`; ler `passwordHash`; inserir directamente em `EventoAuditoria`.
+- **Contas e papéis** só por funções da BD que autenticam o autor pela **sessão** (`criar_utilizador`, `definir_papeis`, `definir_estado_utilizador`, `revogar_sessoes_utilizador`): permissão `utilizadores:gerir`, nunca os próprios papéis/estado, desactivar termina as sessões na mesma transacção.
+- **Auditoria com origem:** `BD` (função da BD com autor autenticado: contas, papéis, dinheiro, correcção de notas — não forjável pela aplicação) e `APP` (relatado pela aplicação, hora do servidor, `registar_evento_app`). Eventos anteriores à migração ficam `APP`.
+
+### Testes (ataques com a ligação de negócio e com a de autenticação)
+`tests/integration/isolamento.test.ts` (8) + o job `compose` do CI: sessões, papéis, permissões, contas, palavra-passe e auditoria fora do alcance de `lamanus_app`; `lamanus_auth` cria sessões mas não toca em papéis, negócio nem auditoria; funções recusam token inválido/hash/expirado/revogado, falta de permissão, alterar os próprios papéis, papéis inexistentes. Mutação (5 defesas retiradas uma a uma) detectada em todas.
+
+### Limites que permanecem (declarados)
+- Quem controle o **processo da aplicação inteiro** (que tem as duas ligações) ou o **dono da base de dados** continua fora desta protecção.
+- Eventos de origem `APP` podem ter o **autor** falsificado por quem tenha SQL na ligação `lamanus_app` (por isso as acções críticas são `BD`). Cadeia de integridade da auditoria (detectar apagamentos feitos pelo dono) fica para a parte 2 da H, junto com a exportação/backup.
+- A palavra-passe continua a ser verificada na aplicação (argon2id), não na BD (ver ADR-0008, decisão 2).

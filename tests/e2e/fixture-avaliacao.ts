@@ -80,7 +80,9 @@ export async function criarFixtureAvaliacao(senha: string): Promise<FixtureAvali
     });
 
   const emailEncarregado = `enc-av-${sufixo}@exemplo.lamanu.test`;
-  const user = await db.user.create({
+  // Contas só as cria o dono (ADR-0008): a fixture é infra de teste, não a aplicação.
+  const admin = criarClienteAdmin();
+  const user = await admin.user.create({
     data: {
       email: emailEncarregado,
       nome: "Encarregado E2E Notas",
@@ -88,6 +90,7 @@ export async function criarFixtureAvaliacao(senha: string): Promise<FixtureAvali
       papeis: { create: [{ roleId: roleEnc.id }] },
     },
   });
+  await admin.$disconnect();
   const enc = await db.encarregado.create({
     data: { nome: "Encarregado E2E Notas", userId: user.id },
   });

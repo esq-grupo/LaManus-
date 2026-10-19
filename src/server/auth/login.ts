@@ -1,4 +1,4 @@
-import { db } from "@/server/db";
+import { dbAuth as db } from "@/server/db-auth";
 import { registarAuditoria } from "@/server/audit";
 import { AUTH } from "./config";
 import { gastarTempoDeVerificacao, verificarPassword } from "./password";

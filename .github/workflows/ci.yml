@@ -19,6 +19,7 @@ jobs:
       # Dono das tabelas (migrações, seed, limpeza de testes) e papel restrito da aplicação.
       ADMIN_DATABASE_URL: postgresql://lamanus:lamanus_ci@localhost:5432/lamanus?schema=public
       DATABASE_URL: postgresql://lamanus_app:lamanus_app_ci@localhost:5432/lamanus?schema=public
+      AUTH_DATABASE_URL: postgresql://lamanus_auth:lamanus_auth_ci@localhost:5432/lamanus?schema=public
       SEED_PASSWORD: Ci-Apenas-Teste-2026
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +36,7 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - name: Criar o papel restrito da aplicação
-        run: PGPASSWORD=lamanus_ci psql -h localhost -U lamanus -d lamanus -v ON_ERROR_STOP=1 -v app_password=lamanus_app_ci -f docker/db/papeis.sql
+        run: PGPASSWORD=lamanus_ci psql -h localhost -U lamanus -d lamanus -v ON_ERROR_STOP=1 -v app_password=lamanus_app_ci -v auth_password=lamanus_auth_ci -f docker/db/papeis.sql
       - run: npm run db:preflight
       - run: npm run db:deploy
       - run: npm run db:seed
@@ -49,6 +50,7 @@ jobs:
     env:
       ADMIN_DATABASE_URL: postgresql://lamanus:lamanus_dev@localhost:5432/lamanus?schema=public
       DATABASE_URL: postgresql://lamanus_app:lamanus_app_dev@localhost:5432/lamanus?schema=public
+      AUTH_DATABASE_URL: postgresql://lamanus_auth:lamanus_auth_dev@localhost:5432/lamanus?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -69,7 +71,9 @@ jobs:
         run: |
           app() { docker compose exec -T -e PGPASSWORD=lamanus_app_dev db psql -U lamanus_app -d lamanus -v ON_ERROR_STOP=1 -c "$1"; }
           # Cada comando abaixo TEM de ser recusado; se algum for aceite, o passo falha.
-          for proibido in 'TRUNCATE "Nota"' 'ALTER TABLE "Nota" DISABLE TRIGGER nota_bloqueada' 'SET ROLE lamanus' 'DELETE FROM "EventoAuditoria"'; do
+          for proibido in 'TRUNCATE "Nota"' 'ALTER TABLE "Nota" DISABLE TRIGGER nota_bloqueada' 'SET ROLE lamanus' 'DELETE FROM "EventoAuditoria"' \
+            'SELECT * FROM "Session"' 'SELECT "passwordHash" FROM "User"' "UPDATE \"User\" SET estado = 'ACTIVO'" \
+            'DELETE FROM "UserRole"' 'DELETE FROM "RolePermission"' "INSERT INTO \"EventoAuditoria\" (id, acao, entidade) VALUES (gen_random_uuid(), 'X', 'X')"; do
             if app "$proibido" >/dev/null 2>&1; then
               echo "ERRO: a aplicação conseguiu executar: $proibido"
               exit 1
@@ -77,5 +81,15 @@ jobs:
             echo "recusado (correcto): $proibido"
           done
           app 'SELECT count(*) FROM "Nota"' >/dev/null
+          # O módulo de autenticação (lamanus_auth) alcança as sessões mas não o negócio.
+          auth() { docker compose exec -T -e PGPASSWORD=lamanus_auth_dev db psql -U lamanus_auth -d lamanus -v ON_ERROR_STOP=1 -c "$1"; }
+          auth 'SELECT count(*) FROM "Session"' >/dev/null
+          for proibido in 'SELECT count(*) FROM "Nota"' 'DELETE FROM "Session"' 'DELETE FROM "UserRole"'; do
+            if auth "$proibido" >/dev/null 2>&1; then
+              echo "ERRO: o papel de autenticação conseguiu executar: $proibido"
+              exit 1
+            fi
+            echo "recusado (correcto, autenticação): $proibido"
+          done
       - if: always()
         run: docker compose down -v

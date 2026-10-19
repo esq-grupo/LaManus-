@@ -4,7 +4,6 @@ import { registarAuditoria } from "@/server/audit";
 import { can, ehPapel, podeAlterarPapeis, type Papel, type Principal } from "@/server/authz";
 import { hashPassword } from "@/server/auth/password";
 import { enviarLinkDeRedefinicao } from "@/server/auth/recuperacao";
-import { revogarSessoesDoUtilizador } from "@/server/auth/sessao";
 import { randomBytes } from "node:crypto";
 
 import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
@@ -88,50 +87,75 @@ export async function contarUtilizadores(actor: Principal, q?: string) {
   return db.user.count({ where: filtroUtilizadores(q) });
 }
 
-async function idsDePapeis(codigos: string[]) {
-  const roles = await db.role.findMany({ where: { codigo: { in: codigos } } });
-  if (roles.length !== new Set(codigos).size) throw new ErroValidacao(["Papel inexistente."]);
-  return roles.map((r) => r.id);
+export interface ContextoAdmin {
+  tokenSessao: string | null;
+  ip?: string | null;
 }
 
-/** O administrador nunca vê nem define palavras-passe: a conta nasce com uma inutilizável e o utilizador define a sua pelo link. */
-export async function criarUtilizador(actor: Principal, entrada: unknown, ip?: string | null) {
+function exigirToken(ctx: ContextoAdmin): string {
+  if (!ctx.tokenSessao) throw new ErroAutorizacao("Sessão inválida.");
+  return ctx.tokenSessao;
+}
+
+/** A BD recusou: sessão/permissão → erro de autorização; regras de negócio → mensagem clara (sem detalhes técnicos). */
+async function chamar<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const msg = String((e as { message?: string }).message ?? "");
+    if (/Sessão inválida|Sem permissão \(/.test(msg))
+      throw new ErroAutorizacao("Sessão inválida ou sem permissão para esta operação.");
+    if (/Não pode alterar os seus próprios papéis/.test(msg))
+      throw new ErroAutorizacao("Não pode alterar os seus próprios papéis.");
+    if (/Não pode alterar o estado da sua própria conta/.test(msg))
+      throw new ErroAutorizacao("Não pode alterar o estado da sua própria conta.");
+    if (/Utilizador inexistente|Papel inexistente|Indique pelo menos um papel/.test(msg))
+      throw new ErroValidacao([
+        msg.match(/Utilizador inexistente|Papel inexistente|Indique pelo menos um papel/)![0],
+      ]);
+    if ((e as { code?: string }).code === "P2010" && /23505|unique/i.test(msg))
+      throw new ErroValidacao(["Já existe um utilizador com esse email."]);
+    throw e;
+  }
+}
+
+/**
+ * O administrador nunca vê nem define palavras-passe: a conta nasce com uma inutilizável e o utilizador define a sua pelo link.
+ * A conta e os papéis são criados por uma função da BD que autentica o autor pela SESSÃO (ADR-0008).
+ */
+export async function criarUtilizador(actor: Principal, entrada: unknown, ctx: ContextoAdmin) {
   exigir(actor, "utilizadores:gerir");
+  const token = exigirToken(ctx);
   const r = criarUtilizadorSchema.safeParse(entrada);
   if (!r.success) throw new ErroValidacao(r.error.issues.map((i) => i.message));
   const { nome, email, papeis } = r.data;
   if (await db.user.findUnique({ where: { email } }))
     throw new ErroValidacao(["Já existe um utilizador com esse email."]);
 
-  const roleIds = await idsDePapeis(papeis);
   const passwordHash = await hashPassword(randomBytes(32).toString("base64url"));
-  const user = await db.user.create({
-    data: { nome, email, passwordHash, papeis: { create: roleIds.map((roleId) => ({ roleId })) } },
-  });
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "UTILIZADOR_CRIADO",
-    entidade: "User",
-    entidadeId: user.id,
-    depois: { nome, email, papeis },
-    ip,
-  });
+  const [linha] = await chamar(
+    () =>
+      db.$queryRaw<{ id: string }[]>`
+        SELECT criar_utilizador(${token}, ${email}, ${nome}, ${passwordHash}, ${papeis}::text[], ${ctx.ip ?? null}) AS id`,
+  );
+  const id = linha!.id;
   await enviarConvite(
-    user.id,
+    id,
     actor.id,
-    ip,
+    ctx.ip,
     "Utilizador criado, mas não foi possível enviar o email.",
   );
-  return user.id;
+  return id;
 }
 
 export async function alterarPapeis(
   actor: Principal,
   alvoId: string,
   papeisNovos: string[],
-  ip?: string | null,
+  ctx: ContextoAdmin,
 ) {
   exigir(actor, "utilizadores:gerir");
+  const token = exigirToken(ctx);
   if (!podeAlterarPapeis(actor, alvoId)) {
     await registarAuditoria({
       actorId: actor.id,
@@ -139,62 +163,44 @@ export async function alterarPapeis(
       entidade: "User",
       entidadeId: alvoId,
       depois: { tentativa: "alterar próprios papéis" },
-      ip,
+      ip: ctx.ip,
     });
     throw new ErroAutorizacao("Não pode alterar os seus próprios papéis.");
   }
   if (papeisNovos.length === 0 || !papeisNovos.every(ehPapel))
     throw new ErroValidacao(["Papéis inválidos."]);
-  const alvo = await db.user.findUnique({ where: { id: alvoId }, include: incluirPapeis });
-  if (!alvo) throw new ErroValidacao(["Utilizador inexistente."]);
-  const antes = alvo.papeis.map((ur) => ur.role.codigo).sort();
-  const roleIds = await idsDePapeis(papeisNovos);
-  await db.$transaction([
-    db.userRole.deleteMany({ where: { userId: alvoId } }),
-    db.userRole.createMany({ data: roleIds.map((roleId) => ({ userId: alvoId, roleId })) }),
-  ]);
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: "PAPEIS_ALTERADOS",
-    entidade: "User",
-    entidadeId: alvoId,
-    antes: { papeis: antes },
-    depois: { papeis: [...papeisNovos].sort() },
-    ip,
-  });
+  await chamar(
+    () =>
+      db.$executeRaw`SELECT definir_papeis(${token}, ${alvoId}::uuid, ${papeisNovos}::text[], ${ctx.ip ?? null})`,
+  );
 }
 
 export async function definirEstado(
   actor: Principal,
   alvoId: string,
   estado: "ACTIVO" | "DESACTIVADO",
-  ip?: string | null,
+  ctx: ContextoAdmin,
 ) {
   exigir(actor, "utilizadores:gerir");
+  const token = exigirToken(ctx);
   if (actor.id === alvoId)
     throw new ErroAutorizacao("Não pode alterar o estado da sua própria conta.");
-  const alvo = await db.user.findUnique({ where: { id: alvoId } });
-  if (!alvo) throw new ErroValidacao(["Utilizador inexistente."]);
-  await db.user.update({
-    where: { id: alvoId },
-    data: { estado, tentativasFalhadas: 0, bloqueadoAte: null },
-  });
-  if (estado === "DESACTIVADO")
-    await revogarSessoesDoUtilizador(alvoId, actor.id, "conta desactivada", ip);
-  await registarAuditoria({
-    actorId: actor.id,
-    acao: estado === "ACTIVO" ? "UTILIZADOR_REACTIVADO" : "UTILIZADOR_DESACTIVADO",
-    entidade: "User",
-    entidadeId: alvoId,
-    antes: { estado: alvo.estado },
-    depois: { estado },
-    ip,
-  });
+  await chamar(
+    () =>
+      db.$executeRaw`SELECT definir_estado_utilizador(${token}, ${alvoId}::uuid, ${estado}, ${ctx.ip ?? null})`,
+  );
 }
 
-export async function revogarSessoesDe(actor: Principal, alvoId: string, ip?: string | null) {
+export async function revogarSessoesDe(actor: Principal, alvoId: string, ctx: ContextoAdmin) {
   exigir(actor, "utilizadores:gerir");
-  return revogarSessoesDoUtilizador(alvoId, actor.id, "revogação pelo administrador", ip);
+  const token = exigirToken(ctx);
+  const [linha] = await chamar(
+    () =>
+      db.$queryRaw<
+        { n: number }[]
+      >`SELECT revogar_sessoes_utilizador(${token}, ${alvoId}::uuid, ${ctx.ip ?? null}) AS n`,
+  );
+  return linha!.n;
 }
 
 export async function reenviarConvite(actor: Principal, alvoId: string, ip?: string | null) {
