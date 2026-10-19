@@ -243,6 +243,7 @@ export async function reverterLote(
       const m = lote.manifesto as unknown as Manifesto;
       await tx.$queryRaw`SELECT id FROM "Estudante" WHERE id = ANY(${m.estudantes}::uuid[]) ORDER BY id FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM "Encarregado" WHERE id = ANY(${m.encarregados}::uuid[]) ORDER BY id FOR UPDATE`;
+      await tx.$queryRaw`SELECT "estudanteId" FROM "EstudanteEncarregado" WHERE "estudanteId" = ANY(${m.estudantes}::uuid[]) OR "encarregadoId" = ANY(${m.encarregados}::uuid[]) ORDER BY "estudanteId", "encarregadoId" FOR UPDATE`;
       const motivos: string[] = [];
       const razao = (n: number, texto: string) => n > 0 && motivos.push(`${n} ${texto}`);
       const ests = { in: m.estudantes };

@@ -259,6 +259,10 @@ describe("importação — aplicar, repetir e reverter", () => {
           `UPDATE "Estudante" SET "updatedAt" = now() WHERE id = '${est.id}'`,
         );
         await tentar(
+          "verificar ligação",
+          `UPDATE "EstudanteEncarregado" SET verificado = true, "verificadoEm" = now() WHERE "estudanteId" = '${est.id}'`,
+        );
+        await tentar(
           "pagamento",
           `INSERT INTO "Pagamento" (id, "estudanteId", valor, metodo, "dataPagamento", "registadoPorId", estado, "createdAt", "updatedAt") VALUES (gen_random_uuid(), '${est.id}', 100, 'TPA', now(), '${user.id}', 'REGISTADO', now(), now())`,
         );
@@ -270,6 +274,7 @@ describe("importação — aplicar, repetir e reverter", () => {
     });
     expect(tentativas).toEqual([
       "alterar estudante: bloqueado",
+      "verificar ligação: bloqueado",
       "pagamento: bloqueado",
       "reverter outra vez: bloqueado",
     ]);
