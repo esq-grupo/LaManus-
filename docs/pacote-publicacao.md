@@ -4,7 +4,7 @@ O pacote já não se faz à mão: o GitHub Actions compila-o a partir de um comm
 
 ## Como se lança
 - **Tag:** `git tag pacote-<hash12> <commit> && git push origin pacote-<hash12>` (`hash12` = 12 primeiros caracteres do commit; a tag tem de coincidir, senão o fluxo recusa).
-- **À mão:** separador *Actions → Pacote → Run workflow*, com o hash **completo** (40 caracteres) em «commit». (Só aparece depois de o ficheiro estar no ramo por omissão.)
+- **À mão:** separador *Actions → Pacote → Run workflow*, com o hash **completo** (40 caracteres) em «commit» (e «ensaio» marcado para um ensaio). Só aparece depois de o ficheiro estar no ramo por omissão.
 - **Ensaio:** tag `pacote-ensaio-<qualquer coisa>` faz tudo, mas a release fica em **rascunho** e pré-lançamento (visível só a quem tem escrita).
 
 ## O que o fluxo faz

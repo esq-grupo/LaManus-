@@ -13,6 +13,11 @@ on:
         description: "Hash COMPLETO (40 caracteres) do commit a empacotar"
         required: true
         type: string
+      ensaio:
+        description: "Ensaio: a release fica em RASCUNHO e pré-lançamento (não usar em produção)"
+        required: false
+        default: false
+        type: boolean
 
 # Sem permissões por omissão; cada trabalho pede só o que precisa.
 permissions: {}
@@ -43,6 +48,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           SHA_EVENTO: ${{ github.sha }}
           COMMIT_ENTRADA: ${{ inputs.commit }}
+          ENSAIO_ENTRADA: ${{ inputs.ensaio }}
         run: |
           set -euo pipefail
           ensaio=false
@@ -50,6 +56,7 @@ jobs:
             commit="$COMMIT_ENTRADA"
             [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A entrada «commit» tem de ser o hash completo (40 caracteres hexadecimais minúsculos)."; exit 1; }
             tag="pacote-${commit:0:12}"
+            if [ "$ENSAIO_ENTRADA" = "true" ]; then ensaio=true; tag="pacote-ensaio-${commit:0:12}"; fi
           else
             commit="$SHA_EVENTO"
             tag="$REF_NAME"
