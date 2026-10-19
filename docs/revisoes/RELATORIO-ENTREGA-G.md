@@ -20,3 +20,6 @@ Estudantes e encarregados pedem declarações (matrícula, frequência, situaç�
 **G. O que correu mal pelo caminho** — nada de relevante nesta entrega; o ambiente local (PostgreSQL) parou entre sessões e foi reposto antes de cada verificação.
 
 **H. Próxima acção** — CI e entrega ao Codex.
+
+### Adenda — CI no GitHub
+Execução [39258297356](https://github.com/esq-grupo/LaManus-/actions/runs/39258297356), commit `c10af58`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`), sem repetição.
