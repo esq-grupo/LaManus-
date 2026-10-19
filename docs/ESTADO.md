@@ -20,7 +20,8 @@ Actualizado: 2026-10-17
 - [x] Selector de educando; endereço por educando; acesso cruzado → 404
 - [x] Avisos (pauta publicada, nota corrigida, recibo emitido) com contador de não lidos
 - [x] Testes: 50 unitários, 187 integração, 27 e2e; Lighthouse móvel 0,97–0,99 / acessibilidade 1,00
-- [ ] CI, revisão Codex e OK do PO
+- [x] CI verde à 1.ª tentativa (execução 39253442277)
+- [ ] Revisão Codex e OK do PO
 
 ## Tarefas da Entrega E
 - [x] Tipos de encargo; geração mensal em lote idempotente; encargo avulso; anulação com motivo

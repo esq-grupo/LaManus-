@@ -23,3 +23,6 @@ Estudantes e encarregados têm agora portais pensados para o telemóvel: vêem a
 2. A base de dados local parou várias vezes (ambiente reciclado) e deixou testes «skipped»/falhados sem relação com o código; verifiquei sempre o estado antes de tirar conclusões.
 
 **H. Próxima acção** — CI e entrega ao Codex.
+
+### Adenda — CI no GitHub
+Execução [39253442277](https://github.com/esq-grupo/LaManus-/actions/runs/39253442277), commit `5e1ad8d`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`), sem repetição.
