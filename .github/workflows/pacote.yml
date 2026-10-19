@@ -1,0 +1,252 @@
+# Compila e publica o pacote da La Manu a partir de um commit exacto.
+#   · tag "pacote-<hash12>"  (hash12 = 12 primeiros caracteres do commit; a tag tem de coincidir)
+#   · tag "pacote-ensaio-*"  (ensaio: faz tudo, mas a release fica em RASCUNHO e marcada como pré-lançamento)
+#   · execução manual (workflow_dispatch) com a entrada "commit" (hash completo, 40 caracteres)
+# Nunca corre em pull requests. Só usa o GITHUB_TOKEN do próprio fluxo. Ver docs/pacote-publicacao.md.
+name: Pacote
+on:
+  push:
+    tags: ["pacote-*"]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "Hash COMPLETO (40 caracteres) do commit a empacotar"
+        required: true
+        type: string
+
+# Sem permissões por omissão; cada trabalho pede só o que precisa.
+permissions: {}
+
+concurrency:
+  group: pacote-${{ github.ref_name }}-${{ inputs.commit }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22.22.0" # com o npm 10.9.4 que vem nesta versão do Node
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  resolver:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      commit: ${{ steps.r.outputs.commit }}
+      hash12: ${{ steps.r.outputs.hash12 }}
+      ensaio: ${{ steps.r.outputs.ensaio }}
+      tag: ${{ steps.r.outputs.tag }}
+    steps:
+      - name: Resolver e validar o commit
+        id: r
+        env:
+          EVENTO: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA_EVENTO: ${{ github.sha }}
+          COMMIT_ENTRADA: ${{ inputs.commit }}
+        run: |
+          set -euo pipefail
+          ensaio=false
+          if [ "$EVENTO" = "workflow_dispatch" ]; then
+            commit="$COMMIT_ENTRADA"
+            [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A entrada «commit» tem de ser o hash completo (40 caracteres hexadecimais minúsculos)."; exit 1; }
+            tag="pacote-${commit:0:12}"
+          else
+            commit="$SHA_EVENTO"
+            tag="$REF_NAME"
+            [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Commit inválido."; exit 1; }
+            if [[ "$tag" == pacote-ensaio-* ]]; then
+              ensaio=true
+            elif [ "$tag" != "pacote-${commit:0:12}" ]; then
+              echo "::error::A tag «$tag» não corresponde ao commit (esperado pacote-${commit:0:12})."; exit 1
+            fi
+          fi
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "hash12=${commit:0:12}" >> "$GITHUB_OUTPUT"
+          echo "ensaio=$ensaio" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  verificar:
+    needs: resolver
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lamanus
+          POSTGRES_PASSWORD: lamanus_ci
+          POSTGRES_DB: lamanus
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U lamanus" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Valores FICTÍCIOS só para os testes (os mesmos do CI); nada disto vai para o pacote.
+      ADMIN_DATABASE_URL: postgresql://lamanus:lamanus_ci@localhost:5432/lamanus?schema=public
+      DATABASE_URL: postgresql://lamanus_app:lamanus_app_ci@localhost:5432/lamanus?schema=public
+      AUTH_DATABASE_URL: postgresql://lamanus_auth:lamanus_auth_ci@localhost:5432/lamanus?schema=public
+      SEED_PASSWORD: Ci-Apenas-Teste-2026
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.resolver.outputs.commit }}
+          persist-credentials: false
+          clean: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: npm ci (lockfile congelado; até 3 tentativas por causa da rede)
+        run: |
+          for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Criar os papéis da base de dados de teste
+        run: PGPASSWORD=lamanus_ci psql -h localhost -U lamanus -d lamanus -v ON_ERROR_STOP=1 -v app_password=lamanus_app_ci -v auth_password=lamanus_auth_ci -f docker/db/papeis.sql
+      - run: npm run db:deploy
+      - run: npm run verificar:privilegios
+      - run: npm run db:seed
+      - run: npm test
+
+  compilar:
+    needs: [resolver, verificar]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha256: ${{ steps.p.outputs.sha256 }}
+      ficheiro: ${{ steps.p.outputs.ficheiro }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ needs.resolver.outputs.commit }}
+          persist-credentials: false
+          clean: true
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # sem cache de npm: extracção e dependências sempre limpas
+      - name: Versões
+        run: |
+          node -v | tee /dev/stderr | grep -qx "v${NODE_VERSION}"
+          npm -v
+          uname -m
+      - name: Confirmar que o commit é o pedido
+        env:
+          COMMIT: ${{ needs.resolver.outputs.commit }}
+        run: test "$(git rev-parse HEAD)" = "$COMMIT"
+      - name: npm ci (lockfile congelado; até 3 tentativas por causa da rede)
+        run: |
+          for i in 1 2 3; do npm ci && exit 0; echo "npm ci falhou (tentativa $i)"; sleep $((i*10)); done; exit 1
+      - name: Gerar o cliente Prisma e compilar
+        env:
+          # valor falso, só para o `prisma generate` (não liga a nada)
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
+        run: |
+          npx prisma generate
+          npm run build
+      - name: Montar o pacote
+        id: p
+        env:
+          COMMIT: ${{ needs.resolver.outputs.commit }}
+        run: |
+          node scripts/empacotar.mjs
+          f="lamanus-${COMMIT:0:12}-linux-x64.tar.gz"
+          echo "ficheiro=$f" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(cut -d' ' -f1 "saida/$f.sha256")" >> "$GITHUB_OUTPUT"
+          ls -l saida
+          echo "Conteúdo de topo:"; tar -tzf "saida/$f" | grep -E '^\./[^/]+/?$'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pacote
+          path: |
+            saida/*.tar.gz
+            saida/*.tar.gz.sha256
+          retention-days: ${{ needs.resolver.outputs.ensaio == 'true' && 1 || 14 }}
+          if-no-files-found: error
+
+  atestar:
+    needs: [resolver, compilar]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    outputs:
+      resultado: ${{ steps.a.outcome }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pacote
+          path: saida
+      - name: Atestação de origem (build provenance)
+        id: a
+        continue-on-error: true # em repositórios privados exige GitHub Enterprise Cloud; a falha fica indicada na release
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        with:
+          subject-path: saida/lamanus-*-linux-x64.tar.gz
+
+  publicar:
+    needs: [resolver, compilar, atestar]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # só este trabalho cria a release
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pacote
+          path: saida
+      - name: Reconferir o SHA-256 do artefacto
+        env:
+          F: ${{ needs.compilar.outputs.ficheiro }}
+          SHA: ${{ needs.compilar.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(sha256sum "saida/$F" | cut -d' ' -f1)" = "$SHA"
+          test "$(cut -d' ' -f1 "saida/$F.sha256")" = "$SHA"
+      - name: Só publicar de forma definitiva se o repositório for PRIVADO
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENSAIO: ${{ needs.resolver.outputs.ensaio }}
+        run: |
+          set -euo pipefail
+          privado=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          echo "Repositório privado: $privado"
+          if [ "$privado" != "true" ] && [ "$ENSAIO" != "true" ]; then
+            echo "::error::O repositório NÃO é privado: uma release seria pública. Nada foi publicado. Torne o repositório privado e repita."
+            exit 1
+          fi
+      - name: Criar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ needs.resolver.outputs.commit }}
+          HASH12: ${{ needs.resolver.outputs.hash12 }}
+          TAG: ${{ needs.resolver.outputs.tag }}
+          ENSAIO: ${{ needs.resolver.outputs.ensaio }}
+          F: ${{ needs.compilar.outputs.ficheiro }}
+          SHA: ${{ needs.compilar.outputs.sha256 }}
+          ATESTACAO: ${{ needs.atestar.outputs.resultado }}
+        run: |
+          set -euo pipefail
+          tamanho=$(stat -c %s "saida/$F")
+          {
+            echo "Pacote da La Manu, compilado pelo GitHub Actions (Linux x86_64, Node ${NODE_VERSION}, \`npm ci\`)."
+            echo
+            echo "- Commit: \`$COMMIT\`"
+            echo "- Ficheiro: \`$F\` ($tamanho bytes)"
+            echo "- SHA-256: \`$SHA\`"
+            echo "- Atestação de origem: $([ "$ATESTACAO" = "success" ] && echo "sim (\`gh attestation verify $F --repo $GITHUB_REPOSITORY\`)" || echo "não disponível neste repositório ($ATESTACAO)")"
+            echo
+            echo "Confirme depois de descarregar: \`sha256sum -c $F.sha256\`."
+            [ "$ENSAIO" = "true" ] && echo && echo "**ENSAIO — não usar em produção.**"
+          } > notas.md
+          flags=()
+          if [ "$ENSAIO" = "true" ]; then flags+=(--draft --prerelease); fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Já existe uma release com a tag $TAG; não é substituída."; exit 1
+          fi
+          gh release create "$TAG" "saida/$F" "saida/$F.sha256" \
+            --target "$COMMIT" \
+            --title "La Manu — pacote $HASH12 (linux-x64)$([ "$ENSAIO" = "true" ] && echo " — ENSAIO")" \
+            --notes-file notas.md "${flags[@]}"

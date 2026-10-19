@@ -1,0 +1,24 @@
+{
+  "name": "lamanus-manutencao",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ferramentas de manutenção da La Manu (migrações, primeira conta, verificações). Não é a aplicação.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "db:deploy": "prisma migrate deploy && tsx scripts/aplicar-grants.ts && tsx scripts/sincronizar-permissoes.ts",
+    "db:preflight": "tsx scripts/preflight-migracoes.ts",
+    "db:permissoes": "tsx scripts/sincronizar-permissoes.ts",
+    "admin:inicial": "tsx scripts/criar-admin-inicial.ts",
+    "verificar:privilegios": "tsx scripts/verificar-privilegios.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.2",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "18.0.7",
+    "pg": "8.23.1",
+    "prisma": "7.10.0",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  }
+}
