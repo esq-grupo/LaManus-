@@ -18,7 +18,7 @@ Actualizado: 2026-10-17
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
 ## Entrega H — em curso (OK do PO em 2026-10-19: Entrega G FECHADA)
-- [x] H1 — Isolamento de sessões, papéis e auditoria (ADR-0008): papel `lamanus_auth`, funções de contas, auditoria com origem; testes de ataque
+- [x] H1 — Isolamento de sessões, papéis e auditoria (ADR-0008): papel `lamanus_auth`, funções de contas, auditoria com origem; testes de ataque. CI verde à 1.ª tentativa (execução 39291090288, commit e64be6e); revisão Codex pendente
 - [ ] H2 — Importador Excel (ensaio com ficheiros FICTÍCIOS; relatório de importadas/rejeitadas/transformadas; reconciliação)
 - [ ] H3 — Backup e restauro testados, deploy em staging com TLS, `docs/deployment.md` e runbook de incidentes
 - [ ] H4 — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
