@@ -22,7 +22,8 @@ Actualizado: 2026-10-17
 - [x] PDF e descarga protegida (404 igual); avisos; auditoria
 - [x] Testes: 50 unitários, 207 integração, 28 e2e
 - [x] CI verde à 1.ª tentativa (execução 39258297356)
-- [ ] Revisão Codex e OK do PO
+- [x] Codex: APROVADO COM RESSALVAS (2 corridas) — corrigidas (migração 20261019110000, emissão numa só transacção)
+- [ ] CI da correcção e OK do PO
 
 ## Tarefas da Entrega F
 - [x] Portais mobile-first (estudante e encarregado): notas publicadas, contas, recibos PDF

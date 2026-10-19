@@ -322,6 +322,63 @@ describe("declarações — dados validados na emissão", () => {
   });
 });
 
+describe("declarações — corridas (revisão do Codex à Entrega G)", () => {
+  it("pedidos simultâneos do mesmo tipo: só um fica (a BD impede duplicados)", async () => {
+    const x = await cena();
+    const rs = await Promise.allSettled(
+      Array.from({ length: 6 }, (_, i) =>
+        pedirDeclaracao(x.userEst, {
+          estudanteId: x.est.id,
+          tipo: "MATRICULA",
+          finalidade: `Pedido ${i + 1}`,
+        }),
+      ),
+    );
+    expect(rs.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    for (const r of rs.filter((r) => r.status === "rejected"))
+      expect((r as PromiseRejectedResult).reason).toBeInstanceOf(ErroValidacao);
+    expect(
+      await db.pedidoDeclaracao.count({ where: { estudanteId: x.est.id, tipo: "MATRICULA" } }),
+    ).toBe(1);
+    // outro tipo e, depois de cancelar, o mesmo tipo voltam a ser possíveis
+    const p = await db.pedidoDeclaracao.findFirstOrThrow({ where: { estudanteId: x.est.id } });
+    await cancelarPedido(x.userEst, p.id);
+    await expect(
+      pedirDeclaracao(x.userEst, {
+        estudanteId: x.est.id,
+        tipo: "MATRICULA",
+        finalidade: "De novo",
+      }),
+    ).resolves.toBeTruthy();
+  });
+
+  it("a validação da matrícula e a gravação do documento são uma só transacção: anular a matrícula espera pela emissão", async () => {
+    const x = await cena();
+    const p = await pedirDeclaracao(x.userEst, {
+      estudanteId: x.est.id,
+      tipo: "MATRICULA",
+      finalidade: "Para a embaixada",
+    });
+    await decidirPedido(x.direccao, p.id, "APROVAR", undefined);
+    let anulacao: Promise<unknown> | undefined;
+    let terminou = false;
+    await emitirDeclaracao(x.secretaria, p.id, null, new Date(), {
+      aposValidar: async () => {
+        anulacao = dbAdmin.matricula
+          .updateMany({ where: { estudanteId: x.est.id }, data: { estado: "ANULADA" } })
+          .then(() => (terminou = true));
+        await new Promise((r) => setTimeout(r, 400));
+        // a anulação concorrente NÃO pode ter passado entre a validação e a gravação
+        expect(terminou).toBe(false);
+      },
+    });
+    await anulacao;
+    expect(terminou).toBe(true);
+    const doc = await obterDocumento(x.userEst, p.id);
+    expect(doc.dados.nome).toBe("Estudante de Teste");
+  });
+});
+
 describe("declarações — a base de dados impõe o fluxo", () => {
   it("saltar estados, emitir sem documento, reabrir estados finais, apagar e alterar o documento são recusados", async () => {
     const x = await cena();
@@ -353,6 +410,23 @@ describe("declarações — a base de dados impõe o fluxo", () => {
       ),
     ).toBe("erro");
     await expect(db.$executeRawUnsafe(`TRUNCATE "PedidoDeclaracao" CASCADE`)).rejects.toThrow();
+    // dois pedidos em curso do mesmo tipo: a própria BD recusa (sem passar pela verificação da aplicação)
+    const duplicado = () =>
+      db.pedidoDeclaracao
+        .create({
+          data: {
+            estudanteId: x.est.id,
+            anoLectivoId: x.ano.id,
+            tipo: "MATRICULA",
+            finalidade: "Duplicado",
+            pedidoPorId: x.userEst.id,
+          },
+        })
+        .then(
+          () => "ok",
+          () => "erro",
+        );
+    expect(await duplicado()).toBe("erro");
     // aprovado a si próprio: a restrição recusa
     expect(
       await tenta({ estado: "APROVADO", decididoPorId: x.userEst.id, decididoEm: new Date() }),

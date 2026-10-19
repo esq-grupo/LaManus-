@@ -486,9 +486,13 @@ export async function saldoDoEstudante(
   return calcularSaldo(e.id, agora);
 }
 
-export async function calcularSaldo(estudanteId: string, agora: Date = new Date()) {
+export async function calcularSaldo(
+  estudanteId: string,
+  agora: Date = new Date(),
+  cliente: Pick<typeof db, "$queryRaw"> = db,
+) {
   const hoje = hojeEmLuanda(agora);
-  const [r] = await db.$queryRaw<
+  const [r] = await cliente.$queryRaw<
     { encargos: bigint; pago: bigint; vencido: bigint; credito: bigint }[]
   >`
     SELECT

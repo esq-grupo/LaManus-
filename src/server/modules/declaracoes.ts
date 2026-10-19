@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import type { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { comAuditoria, registarAuditoria } from "@/server/audit";
@@ -65,28 +66,35 @@ export async function pedirDeclaracao(actor: Principal, entrada: unknown, ip?: s
   });
   if (aberto)
     throw new ErroValidacao(["Já existe um pedido deste tipo em curso para este estudante."]);
-  return comAuditoria(async (tx) => {
-    const p = await tx.pedidoDeclaracao.create({
-      data: {
-        estudanteId: d.estudanteId,
-        anoLectivoId: mat.anoLectivoId,
-        tipo: d.tipo,
-        finalidade: d.finalidade,
-        pedidoPorId: actor.id,
-      },
+  try {
+    return await comAuditoria(async (tx) => {
+      const p = await tx.pedidoDeclaracao.create({
+        data: {
+          estudanteId: d.estudanteId,
+          anoLectivoId: mat.anoLectivoId,
+          tipo: d.tipo,
+          finalidade: d.finalidade,
+          pedidoPorId: actor.id,
+        },
+      });
+      return {
+        resultado: p,
+        evento: {
+          actorId: actor.id,
+          acao: "DECLARACAO_PEDIDA",
+          entidade: "PedidoDeclaracao",
+          entidadeId: p.id,
+          depois: { tipo: d.tipo, estudanteId: d.estudanteId },
+          ip,
+        },
+      };
     });
-    return {
-      resultado: p,
-      evento: {
-        actorId: actor.id,
-        acao: "DECLARACAO_PEDIDA",
-        entidade: "PedidoDeclaracao",
-        entidadeId: p.id,
-        depois: { tipo: d.tipo, estudanteId: d.estudanteId },
-        ip,
-      },
-    };
-  });
+  } catch (e) {
+    // dois pedidos simultâneos: o índice único parcial da BD deixa passar só um
+    if (ehViolacaoUnica(e))
+      throw new ErroValidacao(["Já existe um pedido deste tipo em curso para este estudante."]);
+    throw e;
+  }
 }
 
 export async function cancelarPedido(actor: Principal, pedidoId: string, ip?: string | null) {
@@ -169,12 +177,18 @@ export async function decidirPedido(
 
 // ── Emitir (Secretaria) ──────────────────────────────────────────────────────
 
-/** Valida os dados NA EMISSÃO e devolve o instantâneo que fica gravado. */
+/**
+ * Valida os dados NA EMISSÃO e devolve o instantâneo que fica gravado. Corre DENTRO da transacção que grava o documento e
+ * bloqueia a matrícula (`FOR SHARE`): uma anulação concorrente espera pelo fim da emissão, por isso o PDF nunca fica
+ * com dados já alterados entre a validação e a gravação (revisão do Codex à Entrega G).
+ */
 async function montarDados(
+  tx: Prisma.TransactionClient,
   p: { estudanteId: string; anoLectivoId: string; tipo: DadosDeclaracao["tipo"] },
   agora: Date,
 ): Promise<DadosDeclaracao> {
-  const mat = await db.matricula.findFirst({
+  await tx.$queryRaw`SELECT id FROM "Matricula" WHERE "estudanteId" = ${p.estudanteId}::uuid AND "anoLectivoId" = ${p.anoLectivoId}::uuid AND estado = 'ACTIVA' FOR SHARE`;
+  const mat = await tx.matricula.findFirst({
     where: { estudanteId: p.estudanteId, anoLectivoId: p.anoLectivoId, estado: "ACTIVA" },
     include: { turma: { include: { classe: true } }, anoLectivo: true, estudante: true },
   });
@@ -183,7 +197,7 @@ async function montarDados(
       "O estudante já não tem matrícula activa neste ano lectivo: não se pode emitir.",
     ]);
   if (p.tipo === "SITUACAO_FINANCEIRA") {
-    const s = await calcularSaldo(p.estudanteId, agora);
+    const s = await calcularSaldo(p.estudanteId, agora, tx);
     if (s.vencido > 0n)
       throw new ErroValidacao([
         `Existem valores em atraso (${formatarKz(s.vencido)}): não se pode emitir a declaração de situação financeira.`,
@@ -201,70 +215,90 @@ async function montarDados(
   };
 }
 
+/** Conflito de serialização (SQLSTATE 40001): o Prisma devolve P2034, ou P2010 com «40001» quando vem de uma consulta SQL directa. */
+function ehConflitoDeSerializacao(e: unknown): boolean {
+  const x = e as { code?: string; message?: string };
+  return x?.code === "P2034" || (x?.code === "P2010" && /40001/.test(String(x.message)));
+}
+
 export async function emitirDeclaracao(
   actor: Principal,
   pedidoId: string,
   ip?: string | null,
   agora = new Date(),
+  opcoes: { aposValidar?: () => Promise<void> } = {},
 ) {
   if (!can(actor, "declaracoes:emitir")) throw new ErroAutorizacao();
   const id = analisar(uuid, pedidoId);
-  const p0 = await db.pedidoDeclaracao.findUnique({ where: { id } });
-  if (!p0) throw new ErroValidacao(["Pedido inexistente."]);
-  if (p0.estado !== "APROVADO") throw new ErroValidacao(["Só se emite um pedido aprovado."]);
-  if (p0.decididoPorId === actor.id)
-    throw new ErroValidacao(["Quem aprovou o pedido não o pode emitir."]);
-  const dados = await montarDados(p0, agora);
   const ano = Number(hojeEmLuanda(agora).toISOString().slice(0, 4));
-  try {
-    return await comAuditoria(async (tx) => {
-      const p = await tx.pedidoDeclaracao.findUnique({ where: { id } });
-      if (!p || p.estado !== "APROVADO")
-        throw new ErroValidacao(["O pedido já não está por emitir."]);
-      // Número sem saltos: linha do contador bloqueada até ao fim desta transacção (se falhar, o número volta atrás).
-      await tx.$executeRaw`INSERT INTO "SerieDocumento" (serie, ano, proximo) VALUES ('D', ${ano}, 1) ON CONFLICT (serie, ano) DO NOTHING`;
-      const [serie] = await tx.$queryRaw<
-        { proximo: number }[]
-      >`SELECT proximo FROM "SerieDocumento" WHERE serie = 'D' AND ano = ${ano} FOR UPDATE`;
-      const numero = serie!.proximo;
-      await tx.$executeRaw`UPDATE "SerieDocumento" SET proximo = ${numero + 1} WHERE serie = 'D' AND ano = ${ano}`;
-      const doc = await tx.declaracaoEmitida.create({
-        data: {
-          pedidoId: id,
-          serie: "D",
-          ano,
-          numero,
-          codigo: randomBytes(8).toString("hex").toUpperCase(),
-          dados: { ...dados },
+  // Uma só transacção SERIALIZABLE: leitura do pedido, validação dos dados, numeração, gravação e auditoria. Se o PostgreSQL
+  // detectar um conflito de serialização com outra operação concorrente, repete-se (a validação volta a correr).
+  for (let tentativa = 1; ; tentativa++) {
+    try {
+      return await db.$transaction(
+        async (tx) => {
+          // bloqueia o pedido: duas emissões do mesmo pedido não se cruzam
+          await tx.$queryRaw`SELECT id FROM "PedidoDeclaracao" WHERE id = ${id}::uuid FOR UPDATE`;
+          const p = await tx.pedidoDeclaracao.findUnique({ where: { id } });
+          if (!p) throw new ErroValidacao(["Pedido inexistente."]);
+          if (p.estado !== "APROVADO") throw new ErroValidacao(["Só se emite um pedido aprovado."]);
+          if (p.decididoPorId === actor.id)
+            throw new ErroValidacao(["Quem aprovou o pedido não o pode emitir."]);
+          const dados = await montarDados(tx, p, agora);
+          await opcoes.aposValidar?.();
+          // Número sem saltos: linha do contador bloqueada até ao fim desta transacção (se falhar, o número volta atrás).
+          await tx.$executeRaw`INSERT INTO "SerieDocumento" (serie, ano, proximo) VALUES ('D', ${ano}, 1) ON CONFLICT (serie, ano) DO NOTHING`;
+          const [serie] = await tx.$queryRaw<
+            { proximo: number }[]
+          >`SELECT proximo FROM "SerieDocumento" WHERE serie = 'D' AND ano = ${ano} FOR UPDATE`;
+          const numero = serie!.proximo;
+          await tx.$executeRaw`UPDATE "SerieDocumento" SET proximo = ${numero + 1} WHERE serie = 'D' AND ano = ${ano}`;
+          const doc = await tx.declaracaoEmitida.create({
+            data: {
+              pedidoId: id,
+              serie: "D",
+              ano,
+              numero,
+              codigo: randomBytes(8).toString("hex").toUpperCase(),
+              dados: { ...dados },
+            },
+          });
+          await tx.pedidoDeclaracao.update({
+            where: { id },
+            data: { estado: "EMITIDA", emitidoPorId: actor.id, emitidoEm: new Date() },
+          });
+          await notificarPedido(tx, {
+            userId: p.pedidoPorId,
+            estudanteId: p.estudanteId,
+            pedidoId: id,
+            tipo: "DECLARACAO_EMITIDA",
+          });
+          await registarAuditoria(
+            {
+              actorId: actor.id,
+              acao: "DECLARACAO_EMITIDA",
+              entidade: "PedidoDeclaracao",
+              entidadeId: id,
+              antes: { estado: "APROVADO" },
+              depois: { estado: "EMITIDA", numero: `D/${ano}/${numero}` },
+              ip,
+            },
+            tx,
+          );
+          return doc;
         },
-      });
-      await tx.pedidoDeclaracao.update({
-        where: { id },
-        data: { estado: "EMITIDA", emitidoPorId: actor.id, emitidoEm: new Date() },
-      });
-      await notificarPedido(tx, {
-        userId: p.pedidoPorId,
-        estudanteId: p.estudanteId,
-        pedidoId: id,
-        tipo: "DECLARACAO_EMITIDA",
-      });
-      return {
-        resultado: doc,
-        evento: {
-          actorId: actor.id,
-          acao: "DECLARACAO_EMITIDA",
-          entidade: "PedidoDeclaracao",
-          entidadeId: id,
-          antes: { estado: "APROVADO" },
-          depois: { estado: "EMITIDA", numero: `D/${ano}/${numero}` },
-          ip,
-        },
-      };
-    });
-  } catch (e) {
-    if (ehViolacaoUnica(e))
-      throw new ErroValidacao(["Conflito ao numerar o documento. Tente novamente."]);
-    throw e;
+        { isolationLevel: "Serializable" },
+      );
+    } catch (e) {
+      if (ehConflitoDeSerializacao(e) && tentativa < 8) {
+        // conflito de serialização (emissões simultâneas): pausa curta com variação e tenta de novo
+        await new Promise((r) => setTimeout(r, 15 + Math.random() * 45 * tentativa));
+        continue;
+      }
+      if (ehViolacaoUnica(e))
+        throw new ErroValidacao(["Conflito ao numerar o documento. Tente novamente."]);
+      throw e;
+    }
   }
 }
 

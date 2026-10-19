@@ -222,3 +222,7 @@ Desenho: `docs/decisions/ADR-0006-pedidos-e-documentos.md`. Tipos de declaraçã
 - Mesmo limite do ADR-0003 (decisão 13): a autoria das transições vem da aplicação; o isolamento de sessões/auditoria é trabalho obrigatório da Entrega H.
 - Sem assinatura digital nem carimbo; o documento traz um código de verificação, mas ainda não há página pública de verificação.
 - Uma declaração de situação financeira reflecte o estado à data de emissão; não é revalidada depois.
+
+### 12.1 Revisão n.º 1 da Entrega G
+- **Um pedido em curso por tipo** imposto pela BD (índice único parcial), não só pela aplicação.
+- **Emissão atómica**: validação da matrícula/situação financeira, numeração, gravação do instantâneo, mudança de estado, aviso e auditoria numa só transacção `SERIALIZABLE` (matrícula e pedido bloqueados); o PDF reflecte exactamente o que foi validado. Uma situação financeira que mude *depois* do instante da emissão não invalida o documento (a declaração diz «à data de emissão»).
