@@ -4,7 +4,7 @@ Para quem executa: Administrador técnico da escola (servidor) e Secretaria/Dire
 Referências: `docs/deployment.md`, `docs/migration-excel.md`, `docs/go-live.md`, `docs/runbook-incidentes.md`.
 
 ## 0. Email (D11) — implementado, falta validar com o serviço da escola
-O envio por SMTP está implementado e testado no CI com um servidor de email falso. **A escola indica:** servidor SMTP, porta (587 com STARTTLS ou 465 com TLS directo), utilizador, palavra-passe e o endereço de remetente. Preenchem-se em `.env.staging` (`SMTP_*`). A cifra é obrigatória em produção. Em staging (passo 1.9) confirma-se que chega um convite e uma recuperação de palavra-passe a uma caixa de ensaio.
+O envio por SMTP está implementado e testado no CI com um servidor de email falso. **A escola indica:** servidor SMTP, porta (587 com STARTTLS ou 465 com TLS directo), utilizador, palavra-passe e o endereço de remetente. Preenchem-se em `.env.staging` (`SMTP_*`). A cifra é obrigatória em produção. **A porta e o modo têm de corresponder ao serviço:** 587 com `SMTP_SEGURO=nao` (STARTTLS) ou 465 com `SMTP_SEGURO=sim` (TLS directo); a combinação errada faz o envio falhar com a mensagem genérica. Em staging (passo 1.9) confirma-se que chega um convite e uma recuperação de palavra-passe a uma caixa de ensaio.
 
 ## 1. Servidor (Administrador técnico) — 1 a 2 horas
 | # | Passo | Deve aparecer | Prova |
