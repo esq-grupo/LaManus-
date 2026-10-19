@@ -1,3 +1,4 @@
+import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Cenario } from "./cenario";
 import { dbAdmin, prepararBd } from "./ajuda";
@@ -220,6 +221,58 @@ describe("importação — aplicar, repetir e reverter", () => {
         where: { estudante: { numeroProcesso: { startsWith: "IMP-" } } },
       });
     }
+  });
+
+  it("reverter bloqueia os registos do lote: nada os altera nem usa entre a verificação e a remoção (revisão 2 do Codex)", async () => {
+    const x = await cena();
+    const r = await aplicarPlano(dbAdmin, await x.planear(), {
+      ficheiro: "exemplo.xlsx",
+      sha256: "d".repeat(64),
+    });
+    const est = await dbAdmin.estudante.findUniqueOrThrow({ where: { numeroProcesso: "IMP-002" } });
+    const user = await c.principal("FINANCEIRO");
+    const tentativas: string[] = [];
+    // Outra ligação tenta, a meio da reversão, alterar o estudante e registar um pagamento: tem de ficar à espera.
+    const tentar = async (nome: string, sql: string) => {
+      const cl = new pg.Client({
+        connectionString: (process.env.ADMIN_DATABASE_URL ?? process.env.DATABASE_URL ?? "").split(
+          "?",
+        )[0],
+      });
+      await cl.connect();
+      try {
+        await cl.query("BEGIN");
+        await cl.query("SET LOCAL lock_timeout = '300ms'");
+        await cl.query(sql);
+        tentativas.push(`${nome}: aceite`);
+      } catch {
+        tentativas.push(`${nome}: bloqueado`);
+      } finally {
+        await cl.query("ROLLBACK").catch(() => undefined);
+        await cl.end();
+      }
+    };
+    await reverterLote(dbAdmin, r.lote.id, {
+      aposVerificar: async () => {
+        await tentar(
+          "alterar estudante",
+          `UPDATE "Estudante" SET "updatedAt" = now() WHERE id = '${est.id}'`,
+        );
+        await tentar(
+          "pagamento",
+          `INSERT INTO "Pagamento" (id, "estudanteId", valor, metodo, "dataPagamento", "registadoPorId", estado, "createdAt", "updatedAt") VALUES (gen_random_uuid(), '${est.id}', 100, 'TPA', now(), '${user.id}', 'REGISTADO', now(), now())`,
+        );
+        await tentar(
+          "reverter outra vez",
+          `SELECT id FROM "LoteMigracao" WHERE id = '${r.lote.id}' FOR UPDATE`,
+        );
+      },
+    });
+    expect(tentativas).toEqual([
+      "alterar estudante: bloqueado",
+      "pagamento: bloqueado",
+      "reverter outra vez: bloqueado",
+    ]);
   });
 
   it("se algo falha a meio, nada fica gravado (uma transacção por lote)", async () => {

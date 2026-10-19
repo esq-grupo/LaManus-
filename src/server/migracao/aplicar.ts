@@ -225,12 +225,24 @@ export class ErroReversao extends Error {
  * Anula um lote (apaga o que ele criou) — só se NADA mudou desde a importação. Se alguém já alterou, verificou, usou ou
  * ligou contas aos registos importados, recusa SEM apagar nada (revisão do Codex à H2): nesse caso corrige-se à mão.
  */
-export async function reverterLote(db: PrismaClient, loteId: string) {
+export async function reverterLote(
+  db: PrismaClient,
+  loteId: string,
+  opcoes: { aposVerificar?: () => Promise<void> } = {},
+) {
   return db.$transaction(
     async (tx) => {
+      // O lote e os registos importados ficam BLOQUEADOS até ao fim: quem tentar alterá-los, usá-los (chave estrangeira:
+      // matrícula, pagamento, nota…) ou reverter o mesmo lote em simultâneo espera, e depois já vê o lote revertido.
+      const bloqueado = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM "LoteMigracao" WHERE id = ${loteId}::uuid FOR UPDATE`;
+      if (bloqueado.length === 0) throw new Error("Lote inexistente.");
       const lote = await tx.loteMigracao.findUniqueOrThrow({ where: { id: loteId } });
       if (lote.estado !== "APLICADO") throw new Error("O lote já foi revertido.");
       const m = lote.manifesto as unknown as Manifesto;
+      await tx.$queryRaw`SELECT id FROM "Estudante" WHERE id = ANY(${m.estudantes}::uuid[]) ORDER BY id FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM "Encarregado" WHERE id = ANY(${m.encarregados}::uuid[]) ORDER BY id FOR UPDATE`;
       const motivos: string[] = [];
       const razao = (n: number, texto: string) => n > 0 && motivos.push(`${n} ${texto}`);
       const ests = { in: m.estudantes };
@@ -315,6 +327,7 @@ export async function reverterLote(db: PrismaClient, loteId: string) {
       );
       razao(await tx.notificacao.count({ where: { estudanteId: ests } }), "aviso(s) enviado(s)");
       if (motivos.length > 0) throw new ErroReversao(motivos);
+      await opcoes.aposVerificar?.();
 
       await tx.encargo.deleteMany({ where: { id: { in: m.encargos } } });
       await tx.matricula.deleteMany({ where: { id: { in: m.matriculas } } });

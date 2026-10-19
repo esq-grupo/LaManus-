@@ -24,6 +24,7 @@ Actualizado: 2026-10-17
 - Respostas ao Codex (APROVADO COM RESSALVAS H1/H2; REPROVADO H3), corrigidas localmente e a aguardar nova revisão:
   - H1: `npm run verificar:privilegios` (catálogo + tentativas recusadas das ligações reais) — corre no CI e **tem de correr no servidor da escola** depois de cada `db:deploy`.
   - H2: relatório sem nº de processo e sem data de nascimento completa; `reverterLote` recusa (sem apagar nada) se houver actividade posterior ao lote. **Continua por validar com ficheiros reais e reconciliação assinada pela escola.**
+  - H2 (revisão 2, concorrência): `reverterLote` bloqueia (`FOR UPDATE`) o lote, os estudantes e os encarregados do lote antes de verificar; alterações, pagamentos/matrículas (chave estrangeira) e reversões simultâneas esperam. Teste concorrente + mutação detectada.
   - H3: o contentor `app` deixou de receber credenciais de administração (só `lamanus_app` e `lamanus_auth`); `.env.staging.example` passou a ser versionado (o `.gitignore` ignorava-o); teste `staging.test.ts` impede regressões.
 - [ ] H4 — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
 
