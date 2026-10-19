@@ -29,7 +29,8 @@ Actualizado: 2026-10-17
 - [x] CI verde à 1.ª tentativa (execução 39258297356)
 - [x] Codex: APROVADO COM RESSALVAS (2 corridas) — corrigidas (migração 20261019110000, emissão numa só transacção)
 - [x] CI da correcção verde à 1.ª tentativa (execução 39285221570)
-- [ ] Veredicto n.º 2 do Codex e OK do PO
+- [x] Codex: APROVADO (revisão n.º 2, commit 7ddbbc5)
+- [ ] OK do PO para fechar a G e iniciar a H
 
 ## Tarefas da Entrega F
 - [x] Portais mobile-first (estudante e encarregado): notas publicadas, contas, recibos PDF
