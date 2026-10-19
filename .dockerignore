@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+importacao
+dados-reais
+armazenamento
+test-results
+tests
+docs
+*.xlsx
+*.xls
+*.csv

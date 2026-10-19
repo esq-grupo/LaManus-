@@ -1,0 +1,69 @@
+# STAGING / produção da escola (docs/deployment.md). Diferenças do docker-compose.yml de desenvolvimento:
+#  - a base de dados NÃO é publicada no exterior; só a aplicação lhe chega, pela rede interna;
+#  - a aplicação corre com os papéis restritos (lamanus_app e lamanus_auth), nunca com o dono;
+#  - o Caddy termina o TLS (HTTPS) e é a única porta aberta (80/443).
+# Os segredos vêm do ficheiro .env.staging (fora do Git; permissões 600) — ver .env.staging.example.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env.staging
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./docker/db/papeis.sql:/papeis.sql:ro
+      - ./docker/db/init:/docker-entrypoint-initdb.d:ro
+    networks: [interna]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  # Migrações, privilégios e permissões: corre uma vez por actualização, como DONO (única ligação com esse poder):
+  #   docker compose -f docker-compose.staging.yml --profile migrar run --rm migrar
+  migrar:
+    image: node:22-slim
+    profiles: ["migrar"]
+    working_dir: /repo
+    volumes: [".:/repo"]
+    env_file: .env.staging
+    environment:
+      ADMIN_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [interna]
+    command:
+      ["sh", "-c", "npm ci && npx prisma generate && npm run db:preflight && npm run db:deploy"]
+
+  app:
+    build: .
+    image: lamanus:staging
+    restart: unless-stopped
+    env_file: .env.staging
+    environment:
+      DATABASE_URL: postgresql://lamanus_app:${APP_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      AUTH_DATABASE_URL: postgresql://lamanus_auth:${AUTH_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [interna]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO em .env.staging}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_dados:/data
+    depends_on: [app]
+    networks: [interna]
+
+networks:
+  interna:
+volumes:
+  dbdata:
+  caddy_dados:

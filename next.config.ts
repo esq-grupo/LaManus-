@@ -18,6 +18,8 @@ const cabecalhos = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // Imagem Docker pequena e autónoma (ver Dockerfile).
+  output: "standalone",
   reactStrictMode: true,
   serverExternalPackages: ["@node-rs/argon2"],
   async headers() {

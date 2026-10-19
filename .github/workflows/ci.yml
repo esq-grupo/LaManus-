@@ -41,6 +41,8 @@ jobs:
       - run: npm run db:deploy
       - run: npm run db:seed
       - run: npm test
+      - name: Ensaio de restauro (cópia cifrada → base nova → comparar contagens)
+        run: bash scripts/testar-restauro.sh
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
@@ -93,3 +95,14 @@ jobs:
           done
       - if: always()
         run: docker compose down -v
+
+  # Valida que a imagem da aplicação constrói e contém o servidor autónomo (o Dockerfile não se constrói localmente).
+  imagem:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t lamanus:ci .
+      - name: A imagem corre sem privilégios e contém o servidor
+        run: |
+          docker run --rm --entrypoint sh lamanus:ci -c 'test -f server.js && test "$(id -u)" != 0'
+          docker run --rm --entrypoint sh lamanus:ci -c 'test ! -f .env && ! ls /app | grep -qi "\.xlsx"'

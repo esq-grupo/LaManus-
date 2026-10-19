@@ -20,7 +20,7 @@ Actualizado: 2026-10-17
 ## Entrega H — em curso (OK do PO em 2026-10-19: Entrega G FECHADA)
 - [x] H1 — Isolamento de sessões, papéis e auditoria (ADR-0008): papel `lamanus_auth`, funções de contas, auditoria com origem; testes de ataque. CI verde à 1.ª tentativa (execução 39291090288, commit e64be6e); revisão Codex pendente
 - [x] H2 — Importador Excel (motor testado com ficheiros FICTÍCIOS; relatório de importadas/rejeitadas/transformadas; reconciliação; reversão). Decisão do PO: importar as válidas e rejeitar as erradas. **Falta analisar os ficheiros reais da escola (ambiente seguro + autorização do PO).**
-- [ ] H3 — Backup e restauro testados, deploy em staging com TLS, `docs/deployment.md` e runbook de incidentes
+- [x] H3 — Backup cifrado + ensaio de restauro (corre no CI), Dockerfile + `docker-compose.staging.yml` + Caddy (TLS), primeira conta (`admin:inicial`), sincronização de permissões no deploy, `docs/deployment.md`, `docs/runbook-incidentes.md`, `docs/go-live.md`. Decisão do PO: cópia diária, guardar as últimas 14. **Falta instalar no servidor da escola (domínio, SMTP) e repetir o ensaio de restauro lá.**
 - [ ] H4 — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
 
 ## PWA (pedido do PO, 2026-10-19)

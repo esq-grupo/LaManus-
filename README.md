@@ -36,3 +36,7 @@ npm run dev                     # http://localhost:3000
 ## Regras
 
 Nunca usar dados reais fora de produção · nunca fazer commit de `.env` · dinheiro em cêntimos (`BigInt`) via `src/lib/dinheiro.ts`. Ver `docs/security.md`.
+
+## Adenda (2026-10-20)
+
+Backup, restauro, instalação em staging e primeira conta: ver `docs/deployment.md`, `docs/runbook-incidentes.md` e `docs/go-live.md`.

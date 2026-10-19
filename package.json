@@ -18,11 +18,15 @@
     "test:e2e": "playwright test",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy && tsx scripts/aplicar-grants.ts",
+    "db:deploy": "prisma migrate deploy && tsx scripts/aplicar-grants.ts && tsx scripts/sincronizar-permissoes.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:preflight": "tsx scripts/preflight-migracoes.ts",
     "db:grants": "tsx scripts/aplicar-grants.ts",
-    "importar": "tsx scripts/importar.ts"
+    "importar": "tsx scripts/importar.ts",
+    "db:permissoes": "tsx scripts/sincronizar-permissoes.ts",
+    "admin:inicial": "tsx scripts/criar-admin-inicial.ts",
+    "backup": "bash scripts/backup.sh",
+    "restauro:ensaio": "bash scripts/testar-restauro.sh"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",

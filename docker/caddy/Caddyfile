@@ -1,0 +1,18 @@
+# TLS automático (Let's Encrypt) para o domínio da escola. Para ensaio interno sem domínio público use `tls internal`.
+{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy app:3000
+	header {
+		# O servidor só fala HTTPS; a aplicação já define o resto dos cabeçalhos de segurança.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	# O IP real do cliente segue para a aplicação (auditoria e bloqueio por IP).
+	log {
+		output file /data/acesso.log {
+			roll_size 10MiB
+			roll_keep 10
+		}
+		format json
+	}
+}
