@@ -23,3 +23,6 @@ Estudantes e encarregados pedem declarações (matrícula, frequência, situaç�
 
 ### Adenda — CI no GitHub
 Execução [39258297356](https://github.com/esq-grupo/LaManus-/actions/runs/39258297356), commit `c10af58`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`), sem repetição.
+
+### Adenda — revisão n.º 1 do Codex (2026-10-19)
+Duas ressalvas (pedidos duplicados em simultâneo; validação fora da transacção de gravação), corrigidas em `7ddbbc5` (ver `VEREDICTO-ENTREGA-G.md`). CI: execução [39285221570](https://github.com/esq-grupo/LaManus-/actions/runs/39285221570), **tentativa 1: success** (jobs `verificar` e `compose`).
