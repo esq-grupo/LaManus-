@@ -141,6 +141,23 @@ async function main() {
   } else if (comando === "portais-limpar") {
     await limparPortais(JSON.parse(argumento ?? "{}") as FixturePortais);
     console.log("JSON:{}");
+  } else if (comando === "pedidos-limpar") {
+    const admin = criarClienteAdmin();
+    try {
+      const ests = {
+        in: (
+          await admin.estudante.findMany({
+            where: { numeroProcesso: { startsWith: "TESTE-" } },
+            select: { id: true },
+          })
+        ).map((e) => e.id),
+      };
+      await admin.declaracaoEmitida.deleteMany({ where: { pedido: { estudanteId: ests } } });
+      await admin.pedidoDeclaracao.deleteMany({ where: { estudanteId: ests } });
+    } finally {
+      await admin.$disconnect();
+    }
+    console.log("JSON:{}");
   } else if (comando === "financeiro-limpar") {
     await limparFinanceiroE2E();
     console.log("JSON:{}");

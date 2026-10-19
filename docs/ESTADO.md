@@ -11,9 +11,17 @@ Actualizado: 2026-10-17
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
 - **Entrega D:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 3 + OK do PO em 2026-10-17).
 - **Entrega E:** FECHADA (Codex APROVADO na revisão n.º 3 + OK do PO em 2026-10-17).
-- **Entrega actual:** F — Portais (implementada; a aguardar CI, Codex e OK do PO).
+- **Entrega F:** FECHADA (Codex APROVADO COM RESSALVAS, corrigida + OK do PO em 2026-10-19).
+- **Entrega actual:** G — Pedidos e documentos (implementada; a aguardar CI, Codex e OK do PO).
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
+
+## Tarefas da Entrega G
+- [x] Pedidos de declaração (matrícula, frequência, situação financeira) pelo portal e na secretaria
+- [x] Aprovação (Direcção) e emissão (Secretaria) com controlo duplo; instantâneo imutável; numeração sem saltos
+- [x] PDF e descarga protegida (404 igual); avisos; auditoria
+- [x] Testes: 50 unitários, 207 integração, 28 e2e
+- [ ] CI, revisão Codex e OK do PO
 
 ## Tarefas da Entrega F
 - [x] Portais mobile-first (estudante e encarregado): notas publicadas, contas, recibos PDF
@@ -22,7 +30,8 @@ Actualizado: 2026-10-17
 - [x] Testes: 50 unitários, 187 integração, 27 e2e; Lighthouse móvel 0,97–0,99 / acessibilidade 1,00
 - [x] CI verde à 1.ª tentativa (execução 39253442277)
 - [x] Codex: APROVADO COM RESSALVAS (escopo por vista em notasDoEstudante) — corrigido
-- [ ] CI da correcção e OK do PO
+- [x] CI da correcção verde à 1.ª tentativa (execução 39255337747)
+- [x] OK do PO (2026-10-19, «vamos avançar»): Entrega F FECHADA
 
 ## Tarefas da Entrega E
 - [x] Tipos de encargo; geração mensal em lote idempotente; encargo avulso; anulação com motivo

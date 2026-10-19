@@ -25,3 +25,5 @@ import type { FixturePortais } from "./fixture-cli";
 export const criarPortais = (senha: string) => correr("portais-criar", senha) as FixturePortais;
 export const limparPortais = (fx: FixturePortais) =>
   void correr("portais-limpar", JSON.stringify(fx));
+
+export const limparPedidos = () => void correr("pedidos-limpar");

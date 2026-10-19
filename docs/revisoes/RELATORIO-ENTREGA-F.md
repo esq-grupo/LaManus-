@@ -26,3 +26,6 @@ Estudantes e encarregados têm agora portais pensados para o telemóvel: vêem a
 
 ### Adenda — CI no GitHub
 Execução [39253442277](https://github.com/esq-grupo/LaManus-/actions/runs/39253442277), commit `5e1ad8d`, tentativa 1: conclusão **success** (jobs `verificar` e `compose`), sem repetição.
+
+### Adenda — revisão n.º 1 do Codex (2026-10-19)
+Ressalva: escopo por vista em `notasDoEstudante` (Docente+Encarregado). Corrigida em `b407ae0` (ver `VEREDICTO-ENTREGA-F.md`). CI: execução [39255337747](https://github.com/esq-grupo/LaManus-/actions/runs/39255337747), **tentativa 1: success**.

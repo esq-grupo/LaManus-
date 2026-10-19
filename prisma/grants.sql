@@ -28,3 +28,7 @@ GRANT EXECUTE ON FUNCTION alocar_pagamento_manual(uuid, uuid, bigint, text, text
 GRANT EXECUTE ON FUNCTION propor_estorno(uuid, bigint, text, text, text) TO lamanus_app;
 GRANT EXECUTE ON FUNCTION rejeitar_estorno(uuid, text, text, text) TO lamanus_app;
 GRANT EXECUTE ON FUNCTION aprovar_estorno(uuid, text, text, text) TO lamanus_app;
+
+-- Pedidos e documentos (ADR-0006): pedidos e documentos emitidos não se apagam nem se truncam; o documento emitido é imutável.
+REVOKE DELETE, TRUNCATE ON "PedidoDeclaracao", "DeclaracaoEmitida", "SerieDocumento" FROM lamanus_app;
+REVOKE UPDATE ON "DeclaracaoEmitida" FROM lamanus_app;

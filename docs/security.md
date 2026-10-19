@@ -204,3 +204,21 @@ Desenho: `docs/decisions/ADR-0005-portais.md`.
 - Lighthouse correu em HTTP local (sem TLS): as «boas práticas» a 0,96 reflectem isso; repetir em staging com TLS (Entrega H).
 - Só canal APP; sem e-mail/SMS/push. O aviso de recibo é «melhor esforço» (falha auditada, não desfaz a confirmação).
 - Sem teste de carga do servidor (ADR-0001) — Entrega H.
+
+## 12. Estado de implementação — Entrega G (2026-10-19)
+
+Desenho: `docs/decisions/ADR-0006-pedidos-e-documentos.md`. Tipos de declaração decididos pelo PO: matrícula, frequência e situação financeira (esta só sem valores em atraso).
+
+### Garantias testadas
+- **Fluxo imposto na BD** (gatilho + `CHECK`): `PEDIDO → APROVADO|REJEITADO|CANCELADO`, `APROVADO → EMITIDA` (só com documento gravado); estados finais definitivos; dados do pedido imutáveis; pedidos e documentos não se apagam nem se truncam (nem a aplicação, nem o dono apaga o instantâneo emitido por UPDATE).
+- **Controlo duplo:** quem pede não decide o próprio pedido; quem aprova não emite (serviço **e** restrição na BD), mesmo com os dois papéis.
+- **Dados validados na emissão** (matrícula activa no ano; situação financeira sem valores em atraso em Africa/Luanda) e **instantâneo imutável**: mudar o nome do estudante depois não altera o documento emitido.
+- **Numeração sem saltos** `D/ano/n.º` (contador bloqueado na transacção; 4 emissões simultâneas → números consecutivos e distintos) e **código de verificação** aleatório.
+- **Download protegido** (`/declaracoes/<id>`): sem sessão 401; sem permissão/escopo e inexistente → 404 igual (Financeiro, Docente, encarregado por verificar, alheio); só pedidos EMITIDA; cada descarga auditada.
+- **Auditoria** de todas as transições; **avisos** ao requerente (aprovado, rejeitado, emitida) com texto genérico.
+- Matriz papel a papel (9 papéis) para pedir/aprovar/emitir.
+
+### Limitações conhecidas (Entrega G)
+- Mesmo limite do ADR-0003 (decisão 13): a autoria das transições vem da aplicação; o isolamento de sessões/auditoria é trabalho obrigatório da Entrega H.
+- Sem assinatura digital nem carimbo; o documento traz um código de verificação, mas ainda não há página pública de verificação.
+- Uma declaração de situação financeira reflecte o estado à data de emissão; não é revalidada depois.

@@ -22,6 +22,9 @@ export default async function Layout({ children }: { children: React.ReactNode }
           ...(veFinanceiroCompleto(user)
             ? [{ href: "/interno/financeiro", texto: "Financeiro" }]
             : []),
+          ...(can(user, "declaracoes:aprovar") || can(user, "declaracoes:emitir")
+            ? [{ href: "/interno/pedidos", texto: "Pedidos" }]
+            : []),
           ...(can(user, "utilizadores:ver")
             ? [{ href: "/interno/utilizadores", texto: "Utilizadores" }]
             : []),

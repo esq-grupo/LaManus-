@@ -23,6 +23,12 @@ export function NavPortal({
             Início
           </Link>
           <Link
+            href={`${base}/pedidos`}
+            className="inline-flex min-h-11 items-center rounded border px-4"
+          >
+            Pedidos
+          </Link>
+          <Link
             href={`${base}/avisos`}
             className="inline-flex min-h-11 items-center gap-2 rounded border px-4"
             data-testid="nav-avisos"

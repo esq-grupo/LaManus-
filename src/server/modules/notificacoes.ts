@@ -53,7 +53,7 @@ async function criar(
   cliente: Cliente,
   destinos: Destino[],
   dados: {
-    tipo: "PAUTA_PUBLICADA" | "NOTA_CORRIGIDA" | "RECIBO_EMITIDO";
+    tipo: Prisma.NotificacaoCreateManyInput["tipo"];
     titulo: string;
     corpo: string;
     chave: (d: Destino) => string;
@@ -123,6 +123,39 @@ export async function notificarReciboEmitido(
     titulo: "Recibo emitido",
     corpo: "Foi confirmado um pagamento e emitido o recibo. Veja a secção «Contas».",
     chave: (d) => `recibo:${pagamentoId}:${d.estudanteId}`,
+  });
+}
+
+/** Aviso a UMA conta (o requerente de um pedido): aprovado, rejeitado ou documento emitido. Texto genérico. */
+export async function notificarPedido(
+  cliente: Cliente,
+  d: {
+    userId: string;
+    estudanteId: string;
+    pedidoId: string;
+    tipo: "PEDIDO_APROVADO" | "PEDIDO_REJEITADO" | "DECLARACAO_EMITIDA";
+  },
+) {
+  const textos = {
+    PEDIDO_APROVADO: [
+      "Pedido aprovado",
+      "O seu pedido de declaração foi aprovado e vai ser emitido pela Secretaria.",
+    ],
+    PEDIDO_REJEITADO: [
+      "Pedido rejeitado",
+      "O seu pedido de declaração não foi aprovado. Veja o motivo na secção «Pedidos».",
+    ],
+    DECLARACAO_EMITIDA: [
+      "Declaração emitida",
+      "A sua declaração já está disponível para descarregar na secção «Pedidos».",
+    ],
+  } as const;
+  const [titulo, corpo] = textos[d.tipo];
+  return criar(cliente, [{ userId: d.userId, estudanteId: d.estudanteId }], {
+    tipo: d.tipo,
+    titulo,
+    corpo,
+    chave: () => `pedido:${d.pedidoId}:${d.tipo}`,
   });
 }
 

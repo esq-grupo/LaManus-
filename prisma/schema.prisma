@@ -76,6 +76,7 @@ model Estudante {
   encargos       Encargo[]
   pagamentos     Pagamento[]
   notificacoes   Notificacao[]
+  pedidos        PedidoDeclaracao[]
   userId         String?                @unique @db.Uuid
   user           User?                  @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
@@ -589,6 +590,9 @@ enum TipoNotificacao {
   PAUTA_PUBLICADA
   NOTA_CORRIGIDA
   RECIBO_EMITIDO
+  PEDIDO_APROVADO
+  PEDIDO_REJEITADO
+  DECLARACAO_EMITIDA
 }
 
 // Aviso para UM destinatário (só ele o lê). Gerado pelo servidor; o texto é genérico (nunca contém notas nem valores).
@@ -609,4 +613,65 @@ model Notificacao {
 
   @@unique([userId, chave])
   @@index([userId, lidaEm, createdAt])
+}
+
+// ───────── Entrega G: pedidos e documentos ─────────
+
+enum TipoDeclaracao {
+  MATRICULA
+  FREQUENCIA
+  SITUACAO_FINANCEIRA
+}
+
+enum EstadoPedido {
+  PEDIDO
+  APROVADO
+  REJEITADO
+  EMITIDA
+  CANCELADO
+}
+
+model PedidoDeclaracao {
+  id             String              @id @default(uuid()) @db.Uuid
+  estudanteId    String              @db.Uuid
+  anoLectivoId   String              @db.Uuid
+  tipo           TipoDeclaracao
+  finalidade     String
+  estado         EstadoPedido        @default(PEDIDO)
+  pedidoPorId    String              @db.Uuid
+  createdAt      DateTime            @default(now())
+  decididoPorId  String?             @db.Uuid
+  decididoEm     DateTime?
+  motivoDecisao  String?
+  emitidoPorId   String?             @db.Uuid
+  emitidoEm      DateTime?
+  canceladoEm    DateTime?
+  estudante      Estudante           @relation(fields: [estudanteId], references: [id])
+  emitida        DeclaracaoEmitida?
+
+  @@index([estudanteId, createdAt])
+  @@index([estado, createdAt])
+}
+
+// Instantâneo IMUTÁVEL do que foi emitido; o PDF gera-se sempre a partir daqui.
+model DeclaracaoEmitida {
+  id          String           @id @default(uuid()) @db.Uuid
+  pedidoId    String           @unique @db.Uuid
+  serie       String
+  ano         Int
+  numero      Int
+  codigo      String           @unique
+  dados       Json
+  emitidaEm   DateTime         @default(now())
+  pedido      PedidoDeclaracao @relation(fields: [pedidoId], references: [id])
+
+  @@unique([serie, ano, numero])
+}
+
+model SerieDocumento {
+  serie    String
+  ano      Int
+  proximo  Int    @default(1)
+
+  @@id([serie, ano])
 }
