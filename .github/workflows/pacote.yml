@@ -250,10 +250,11 @@ jobs:
           } > notas.md
           flags=()
           if [ "$ENSAIO" = "true" ]; then flags+=(--draft --prerelease); fi
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "::error::Já existe uma release com a tag $TAG; não é substituída."; exit 1
           fi
           gh release create "$TAG" "saida/$F" "saida/$F.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
             --target "$COMMIT" \
             --title "La Manu — pacote $HASH12 (linux-x64)$([ "$ENSAIO" = "true" ] && echo " — ENSAIO")" \
             --notes-file notas.md "${flags[@]}"
