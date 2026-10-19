@@ -31,7 +31,15 @@ const texto = (c: Celula | undefined): string => {
 /** Mostra o valor num relatório sem expor dados pessoais completos (nomes encurtados, BI mascarado). */
 function mostrar(coluna: string, c: Celula | undefined): string {
   const t = texto(c);
-  if (coluna === "bi" || coluna === "biencarregado") return mascararBi(t) ?? "";
+  // O n.º de processo identifica o estudante: mascarado como o BI (a linha e a folha chegam para localizar o registo no Excel).
+  if (coluna === "bi" || coluna === "biencarregado" || coluna === "numeroprocesso")
+    return mascararBi(t) ?? "";
+  if (coluna === "datanascimento")
+    return /^\d{4}/.test(t)
+      ? `${t.slice(0, 4)}-**-**`
+      : /(\d{4})$/.test(t)
+        ? `**/**/${t.slice(-4)}`
+        : "**";
   if (coluna === "nome" || coluna === "contacto") return t.length <= 2 ? "**" : `${t.slice(0, 2)}…`;
   return t.slice(0, 40);
 }
@@ -206,7 +214,7 @@ export function validarFicheiro(dados: DadosFicheiro, ctx: Contexto): Plano {
         l.linha,
         "datanascimento",
         l.valores.datanascimento,
-        `Data convertida para ${data.iso}.`,
+        "Data convertida para o formato AAAA-MM-DD.",
         "TRANSFORMADA",
       );
     plano.estudantes.push({

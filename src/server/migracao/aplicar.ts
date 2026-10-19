@@ -214,20 +214,113 @@ export async function aplicarPlano(
   );
 }
 
-/** Anula um lote (apaga o que ele criou). Recusa se já há dependências (pagamentos alocados, notas, …): nesse caso corrige-se à mão. */
+export class ErroReversao extends Error {
+  constructor(public motivos: string[]) {
+    super(`Não é seguro reverter este lote: ${motivos.join("; ")}.`);
+    this.name = "ErroReversao";
+  }
+}
+
+/**
+ * Anula um lote (apaga o que ele criou) — só se NADA mudou desde a importação. Se alguém já alterou, verificou, usou ou
+ * ligou contas aos registos importados, recusa SEM apagar nada (revisão do Codex à H2): nesse caso corrige-se à mão.
+ */
 export async function reverterLote(db: PrismaClient, loteId: string) {
   return db.$transaction(
     async (tx) => {
       const lote = await tx.loteMigracao.findUniqueOrThrow({ where: { id: loteId } });
       if (lote.estado !== "APLICADO") throw new Error("O lote já foi revertido.");
       const m = lote.manifesto as unknown as Manifesto;
+      const motivos: string[] = [];
+      const razao = (n: number, texto: string) => n > 0 && motivos.push(`${n} ${texto}`);
+      const ests = { in: m.estudantes };
+      const encs = { in: m.encarregados };
+
+      razao(
+        await tx.estudante.count({
+          where: {
+            id: ests,
+            OR: [
+              { updatedAt: { gt: lote.criadoEm } },
+              { userId: { not: null } },
+              { archivedAt: { not: null } },
+            ],
+          },
+        }),
+        "estudante(s) alterado(s), arquivado(s) ou com conta associada depois da importação",
+      );
+      razao(
+        await tx.encarregado.count({
+          where: {
+            id: encs,
+            OR: [
+              { updatedAt: { gt: lote.criadoEm } },
+              { userId: { not: null } },
+              { archivedAt: { not: null } },
+            ],
+          },
+        }),
+        "encarregado(s) alterado(s) ou com conta associada depois da importação",
+      );
+      for (const l of m.ligacoes) {
+        const lig = await tx.estudanteEncarregado.findUnique({
+          where: { estudanteId_encarregadoId: l },
+        });
+        if (
+          lig &&
+          (lig.verificado ||
+            lig.verificadoEm ||
+            !lig.autorizacaoActiva ||
+            lig.validoDe ||
+            lig.validoAte)
+        ) {
+          razao(1, "ligação(ões) verificada(s) ou alterada(s) pela Secretaria");
+          break;
+        }
+      }
+      // Encarregados do lote ligados a OUTROS estudantes (não importados por este lote) ou estudantes com outras ligações.
+      razao(
+        await tx.estudanteEncarregado.count({
+          where: {
+            OR: [
+              { encarregadoId: encs, estudanteId: { notIn: m.estudantes } },
+              { estudanteId: ests, encarregadoId: { notIn: m.encarregados } },
+            ],
+          },
+        }),
+        "ligação(ões) criada(s) fora do lote",
+      );
+      razao(
+        await tx.matricula.count({
+          where: {
+            estudanteId: ests,
+            OR: [{ id: { notIn: m.matriculas } }, { estado: { not: "ACTIVA" } }],
+          },
+        }),
+        "matrícula(s) nova(s) ou alterada(s) depois da importação",
+      );
+      razao(
+        await tx.encargo.count({ where: { estudanteId: ests, id: { notIn: m.encargos } } }),
+        "encargo(s) criado(s) depois da importação",
+      );
+      razao(
+        await tx.alocacaoPagamento.count({ where: { estudanteId: ests } }),
+        "alocação(ões) de pagamentos",
+      );
+      razao(await tx.pagamento.count({ where: { estudanteId: ests } }), "pagamento(s)");
+      razao(await tx.nota.count({ where: { estudanteId: ests } }), "nota(s) lançada(s)");
+      razao(
+        await tx.pedidoDeclaracao.count({ where: { estudanteId: ests } }),
+        "pedido(s) de declaração",
+      );
+      razao(await tx.notificacao.count({ where: { estudanteId: ests } }), "aviso(s) enviado(s)");
+      if (motivos.length > 0) throw new ErroReversao(motivos);
+
       await tx.encargo.deleteMany({ where: { id: { in: m.encargos } } });
       await tx.matricula.deleteMany({ where: { id: { in: m.matriculas } } });
       for (const l of m.ligacoes) await tx.estudanteEncarregado.deleteMany({ where: l });
-      await tx.encarregado.deleteMany({
-        where: { id: { in: m.encarregados }, estudantes: { none: {} } },
-      });
-      await tx.estudante.deleteMany({ where: { id: { in: m.estudantes } } });
+      await tx.encarregado.deleteMany({ where: { id: encs, estudantes: { none: {} } } });
+      await tx.estudante.deleteMany({ where: { id: ests } });
       await tx.loteMigracao.update({
         where: { id: loteId },
         data: { estado: "REVERTIDO", revertidoEm: new Date() },

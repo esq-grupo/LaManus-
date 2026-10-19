@@ -83,6 +83,18 @@ describe("ficheiro de exemplo FICTÍCIO: o que entra e o que é rejeitado (com m
     const csv = relatorioCsv(plano.problemas);
     expect(csv).not.toContain("Aluno Duplicado");
     expect(csv).not.toContain("IMP000000001");
+    // nem o n.º de processo nem a data de nascimento completos (revisão do Codex à H2)
+    for (const pessoal of [
+      "IMP-001",
+      "IMP-002",
+      "IMP-003",
+      "IMP-005",
+      "2011-02-30",
+      "2012-08-15",
+      "15/08/2012",
+    ])
+      expect(csv, pessoal).not.toContain(pessoal);
+    expect(csv).toContain("2011-**-**");
     expect(
       relatorioCsv([
         {

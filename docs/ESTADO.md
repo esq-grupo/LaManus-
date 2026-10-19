@@ -21,6 +21,10 @@ Actualizado: 2026-10-17
 - [x] H1 — Isolamento de sessões, papéis e auditoria (ADR-0008): papel `lamanus_auth`, funções de contas, auditoria com origem; testes de ataque. CI verde à 1.ª tentativa (execução 39291090288, commit e64be6e); revisão Codex pendente
 - [x] H2 — Importador Excel (motor testado com ficheiros FICTÍCIOS; relatório de importadas/rejeitadas/transformadas; reconciliação; reversão). Decisão do PO: importar as válidas e rejeitar as erradas. **Falta analisar os ficheiros reais da escola (ambiente seguro + autorização do PO).** CI verde à 1.ª tentativa (execução 39294358618, commit 7a62515).
 - [x] H3 — Backup cifrado + ensaio de restauro (corre no CI), Dockerfile + `docker-compose.staging.yml` + Caddy (TLS), primeira conta (`admin:inicial`), sincronização de permissões no deploy, `docs/deployment.md`, `docs/runbook-incidentes.md`, `docs/go-live.md`. Decisão do PO: cópia diária, guardar as últimas 14. **Falta instalar no servidor da escola (domínio, SMTP) e repetir o ensaio de restauro lá.** CI verde à 1.ª tentativa, incluindo o ensaio de restauro e a construção da imagem Docker (execução 39296341296, commit 64f1900).
+- Respostas ao Codex (APROVADO COM RESSALVAS H1/H2; REPROVADO H3), corrigidas localmente e a aguardar nova revisão:
+  - H1: `npm run verificar:privilegios` (catálogo + tentativas recusadas das ligações reais) — corre no CI e **tem de correr no servidor da escola** depois de cada `db:deploy`.
+  - H2: relatório sem nº de processo e sem data de nascimento completa; `reverterLote` recusa (sem apagar nada) se houver actividade posterior ao lote. **Continua por validar com ficheiros reais e reconciliação assinada pela escola.**
+  - H3: o contentor `app` deixou de receber credenciais de administração (só `lamanus_app` e `lamanus_auth`); `.env.staging.example` passou a ser versionado (o `.gitignore` ignorava-o); teste `staging.test.ts` impede regressões.
 - [ ] H4 — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
 
 ## PWA (pedido do PO, 2026-10-19)

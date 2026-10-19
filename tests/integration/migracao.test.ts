@@ -2,7 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Cenario } from "./cenario";
 import { dbAdmin, prepararBd } from "./ajuda";
 import { validarFicheiro } from "@/lib/migracao/validar";
-import { aplicarPlano, carregarContexto, reverterLote } from "@/server/migracao/aplicar";
+import {
+  ErroReversao,
+  aplicarPlano,
+  carregarContexto,
+  reverterLote,
+} from "@/server/migracao/aplicar";
 import { lerFicheiro } from "@/server/migracao/ler";
 import { construirExemplo } from "@/server/migracao/exemplo";
 
@@ -152,6 +157,69 @@ describe("importação — aplicar, repetir e reverter", () => {
       (await dbAdmin.loteMigracao.findUniqueOrThrow({ where: { id: r.lote.id } })).estado,
     ).toBe("REVERTIDO");
     await expect(reverterLote(dbAdmin, r.lote.id)).rejects.toThrow(/já foi revertido/);
+  });
+
+  it("reverter recusa, sem apagar nada, se os registos importados já foram alterados, verificados ou usados (revisão do Codex à H2)", async () => {
+    const x = await cena();
+    const aplicar = async (sha: string) =>
+      aplicarPlano(dbAdmin, await x.planear(), {
+        ficheiro: "exemplo.xlsx",
+        sha256: sha.repeat(64),
+      });
+    const contagem = () =>
+      dbAdmin.estudante.count({ where: { numeroProcesso: { startsWith: "IMP-" } } });
+    const casos: [string, (estId: string, encId: string) => Promise<unknown>, RegExp][] = [
+      [
+        "estudante alterado depois",
+        (e) => dbAdmin.estudante.update({ where: { id: e }, data: { contacto: "999" } }),
+        /alterado/,
+      ],
+      [
+        "ligação verificada pela Secretaria",
+        (e) =>
+          dbAdmin.estudanteEncarregado.updateMany({
+            where: { estudanteId: e },
+            data: { verificado: true, verificadoEm: new Date() },
+          }),
+        /ligaç/,
+      ],
+      [
+        "matrícula anulada/transferida",
+        (e) =>
+          dbAdmin.matricula.updateMany({ where: { estudanteId: e }, data: { estado: "ANULADA" } }),
+        /matrícula/,
+      ],
+      [
+        "encarregado com conta associada",
+        async (_e, enc) =>
+          dbAdmin.encarregado.update({
+            where: { id: enc },
+            data: { userId: (await c.principal("ENCARREGADO")).id },
+          }),
+        /conta associada/,
+      ],
+    ];
+    for (const [nome, mexer, esperado] of casos) {
+      const r = await aplicar("e");
+      const est = await dbAdmin.estudante.findUniqueOrThrow({
+        where: { numeroProcesso: "IMP-002" },
+      });
+      const enc = await dbAdmin.encarregado.findUniqueOrThrow({ where: { bi: "ENCIMP0001" } });
+      await new Promise((ok) => setTimeout(ok, 20));
+      await mexer(est.id, enc.id);
+      const antes = await contagem();
+      const erro = await reverterLote(dbAdmin, r.lote.id).catch((e: unknown) => e);
+      expect(erro, nome).toBeInstanceOf(ErroReversao);
+      expect((erro as Error).message, nome).toMatch(esperado);
+      expect(await contagem(), nome).toBe(antes); // nada foi apagado
+      expect(
+        (await dbAdmin.loteMigracao.findUniqueOrThrow({ where: { id: r.lote.id } })).estado,
+      ).toBe("APLICADO");
+      await limparImportacao(); // repõe para o caso seguinte
+      await dbAdmin.matricula.deleteMany({
+        where: { estudante: { numeroProcesso: { startsWith: "IMP-" } } },
+      });
+    }
   });
 
   it("se algo falha a meio, nada fica gravado (uma transacção por lote)", async () => {

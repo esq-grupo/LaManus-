@@ -10,7 +10,7 @@ Marque só quando verificado. Itens com ✱ dependem da escola.
 
 ## Segurança
 - [ ] Só 80/443 abertas; base de dados sem porta pública
-- [ ] Verificação rápida de privilégios (docs/migracoes.md §5) feita **no servidor**
+- [ ] `npm run verificar:privilegios` (com as ligações reais do servidor) sem falhas, **no servidor**, após cada `db:deploy`
 - [ ] Registo de parâmetros de consultas do PostgreSQL desligado
 - [ ] Primeira conta criada com `npm run admin:inicial`; link usado e inutilizado
 - [ ] Lighthouse móvel repetido **com TLS** (desempenho ≥ 0,9; acessibilidade 1,0)

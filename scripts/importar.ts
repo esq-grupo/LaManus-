@@ -7,7 +7,12 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { validarFicheiro } from "../src/lib/migracao/validar";
-import { aplicarPlano, carregarContexto, reverterLote } from "../src/server/migracao/aplicar";
+import {
+  ErroReversao,
+  aplicarPlano,
+  carregarContexto,
+  reverterLote,
+} from "../src/server/migracao/aplicar";
 import { ErroFicheiro, lerFicheiro } from "../src/server/migracao/ler";
 import { relatorioCsv, relatorioMarkdown } from "../src/server/migracao/relatorio";
 import { criarClienteAdmin } from "./db-admin";
@@ -76,6 +81,12 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e instanceof ErroFicheiro ? `Ficheiro inválido: ${e.message}` : e);
+  console.error(
+    e instanceof ErroFicheiro
+      ? `Ficheiro inválido: ${e.message}`
+      : e instanceof ErroReversao
+        ? `${e.message} Nada foi apagado.`
+        : e,
+  );
   process.exitCode = 1;
 });

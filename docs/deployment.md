@@ -17,7 +17,7 @@ Servidor Linux com Docker + Docker Compose, domínio público a apontar para o s
 6. Confirmar: `https://<domínio>/login` abre com cadeado; entrar com o Administrador; criar os restantes utilizadores na aplicação.
 
 ## 4. Actualizações
-`git pull` → copiar a base (cópia de segurança, §6) → passo 3 (migrar) → `up -d --build app`. Se algo correr mal: §7 (reversão).
+`git pull` → copiar a base (cópia de segurança, §6) → passo 3 (migrar) → `up -d --build app`. Se algo correr mal: §7 (reversão). Depois de migrar, correr `npm run verificar:privilegios` com as ligações reais (`ADMIN_DATABASE_URL`, `DATABASE_URL`, `AUTH_DATABASE_URL`): tem de dizer «Privilégios correctos».
 
 ## 5. Segurança do servidor (obrigatório)
 - Só as portas 80/443 abertas (firewall). A base de dados **não** é publicada.

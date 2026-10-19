@@ -3,6 +3,7 @@
 #  - a aplicação corre com os papéis restritos (lamanus_app e lamanus_auth), nunca com o dono;
 #  - o Caddy termina o TLS (HTTPS) e é a única porta aberta (80/443).
 # Os segredos vêm do ficheiro .env.staging (fora do Git; permissões 600) — ver .env.staging.example.
+# Usar SEMPRE:  docker compose --env-file .env.staging -f docker-compose.staging.yml …
 services:
   db:
     image: postgres:16
@@ -34,14 +35,17 @@ services:
     command:
       ["sh", "-c", "npm ci && npx prisma generate && npm run db:preflight && npm run db:deploy"]
 
+  # A aplicação recebe SÓ as duas ligações restritas e a configuração não secreta: NUNCA as credenciais do dono da base de dados
+  # (por isso não usa `env_file`). Os valores interpolados vêm de `--env-file .env.staging` no comando do Compose.
   app:
     build: .
     image: lamanus:staging
     restart: unless-stopped
-    env_file: .env.staging
     environment:
-      DATABASE_URL: postgresql://lamanus_app:${APP_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
-      AUTH_DATABASE_URL: postgresql://lamanus_auth:${AUTH_DB_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      NODE_ENV: production
+      APP_URL: ${APP_URL:?defina APP_URL em .env.staging}
+      DATABASE_URL: postgresql://lamanus_app:${APP_DB_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
+      AUTH_DATABASE_URL: postgresql://lamanus_auth:${AUTH_DB_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?schema=public
     depends_on:
       db: { condition: service_healthy }
     networks: [interna]

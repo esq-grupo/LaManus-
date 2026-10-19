@@ -26,7 +26,8 @@
     "db:permissoes": "tsx scripts/sincronizar-permissoes.ts",
     "admin:inicial": "tsx scripts/criar-admin-inicial.ts",
     "backup": "bash scripts/backup.sh",
-    "restauro:ensaio": "bash scripts/testar-restauro.sh"
+    "restauro:ensaio": "bash scripts/testar-restauro.sh",
+    "verificar:privilegios": "tsx scripts/verificar-privilegios.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",
@@ -57,6 +58,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "5.9",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "yaml": "2.8.1"
   }
 }

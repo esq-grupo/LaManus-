@@ -39,6 +39,7 @@ jobs:
         run: PGPASSWORD=lamanus_ci psql -h localhost -U lamanus -d lamanus -v ON_ERROR_STOP=1 -v app_password=lamanus_app_ci -v auth_password=lamanus_auth_ci -f docker/db/papeis.sql
       - run: npm run db:preflight
       - run: npm run db:deploy
+      - run: npm run verificar:privilegios
       - run: npm run db:seed
       - run: npm test
       - name: Ensaio de restauro (cópia cifrada → base nova → comparar contagens)
