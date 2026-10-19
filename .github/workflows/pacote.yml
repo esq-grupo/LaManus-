@@ -7,6 +7,7 @@ name: Pacote
 on:
   push:
     tags: ["pacote-*"]
+    branches: ["claude/fluxo-pacote-ensaio"] # SÓ NESTE RAMO DE ENSAIO; não existe no fluxo entregue
   workflow_dispatch:
     inputs:
       commit:
@@ -46,6 +47,7 @@ jobs:
         env:
           EVENTO: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
           SHA_EVENTO: ${{ github.sha }}
           COMMIT_ENTRADA: ${{ inputs.commit }}
           ENSAIO_ENTRADA: ${{ inputs.ensaio }}
@@ -57,6 +59,8 @@ jobs:
             [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A entrada «commit» tem de ser o hash completo (40 caracteres hexadecimais minúsculos)."; exit 1; }
             tag="pacote-${commit:0:12}"
             if [ "$ENSAIO_ENTRADA" = "true" ]; then ensaio=true; tag="pacote-ensaio-${commit:0:12}"; fi
+          elif [ "$REF_TYPE" = "branch" ]; then
+            commit="$SHA_EVENTO"; ensaio=true; tag="pacote-ensaio-${commit:0:12}"
           else
             commit="$SHA_EVENTO"
             tag="$REF_NAME"
