@@ -1,3 +1,4 @@
+import { InstalarApp } from "@/components/InstalarApp";
 import { PainelEducando } from "@/components/PainelEducando";
 import { exigirArea } from "@/server/auth/dal";
 import { educandosDoPortal } from "@/server/modules/pessoas";
@@ -10,6 +11,7 @@ export default async function Pagina() {
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
       <h1 className="text-xl font-semibold">O meu perfil</h1>
+      <InstalarApp />
       {eu ? (
         <>
           <p data-testid="perfil">

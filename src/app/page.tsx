@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { obterUtilizador } from "@/server/auth/dal";
+import { areaInicial } from "@/server/authz";
 
 const areas = [
   {
@@ -10,7 +13,11 @@ const areas = [
   { href: "/encarregado", titulo: "Portal do Encarregado", texto: "Acompanhe os seus educandos" },
 ];
 
-export default function Inicio() {
+export default async function Inicio() {
+  // Quem abre a aplicação instalada com sessão válida entra logo na sua área.
+  const user = await obterUtilizador();
+  const destino = user ? areaInicial(user) : null;
+  if (destino) redirect(`/${destino}`);
   return (
     <main className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-2xl font-semibold">Complexo Escolar Privado Lá Manu</h1>

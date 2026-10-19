@@ -21,7 +21,17 @@ const config: NextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ["@node-rs/argon2"],
   async headers() {
-    return [{ source: "/:path*", headers: cabecalhos }];
+    return [
+      { source: "/:path*", headers: cabecalhos },
+      // O service worker nunca fica em cache do navegador: uma versão nova aplica-se logo.
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+    ];
   },
 };
 

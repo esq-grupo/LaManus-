@@ -226,3 +226,6 @@ Desenho: `docs/decisions/ADR-0006-pedidos-e-documentos.md`. Tipos de declaraçã
 ### 12.1 Revisão n.º 1 da Entrega G
 - **Um pedido em curso por tipo** imposto pela BD (índice único parcial), não só pela aplicação.
 - **Emissão atómica**: validação da matrícula/situação financeira, numeração, gravação do instantâneo, mudança de estado, aviso e auditoria numa só transacção `SERIALIZABLE` (matrícula e pedido bloqueados); o PDF reflecte exactamente o que foi validado. Uma situação financeira que mude *depois* do instante da emissão não invalida o documento (a declaração diz «à data de emissão»).
+
+## 13. PWA (2026-10-19)
+Desenho: `docs/decisions/ADR-0007-pwa.md`. Garantias testadas: o service worker só guarda `/offline` (teste de unidade sobre o código e e2e que navega por páginas e descarrega PDFs com o service worker activo e confirma que a cache só tem `/offline`; mutação — passar a guardar respostas — detectada pelos dois); `/offline` é pública e sem dados pessoais; `sw.js` sem cache do navegador; manifesto e ícones válidos (PNG, tamanhos certos). Limitações: sem push; sem uso offline dos dados; iPhone instala-se pelo menu «Partilhar» do Safari.

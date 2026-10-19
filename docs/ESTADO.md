@@ -16,6 +16,11 @@ Actualizado: 2026-10-17
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
 
+## PWA (pedido do PO, 2026-10-19)
+- [x] Manifesto, ícones, service worker mínimo (só `/offline`), convite de instalação, entrada directa na área
+- [x] Testes: 262 vitest (inclui `pwa.test.ts`), 32 e2e (inclui `pwa.spec.ts`); em produção o service worker regista-se e a cache só tem `/offline`
+- [ ] CI e revisão Codex (a incluir na próxima ronda)
+
 ## Tarefas da Entrega G
 - [x] Pedidos de declaração (matrícula, frequência, situação financeira) pelo portal e na secretaria
 - [x] Aprovação (Direcção) e emissão (Secretaria) com controlo duplo; instantâneo imutável; numeração sem saltos

@@ -1,3 +1,4 @@
+import { InstalarApp } from "@/components/InstalarApp";
 import { PainelEducando } from "@/components/PainelEducando";
 import { SeletorEducando } from "@/components/SeletorEducando";
 import { exigirArea } from "@/server/auth/dal";
@@ -14,6 +15,7 @@ export default async function Pagina() {
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
       <h1 className="text-xl font-semibold">Os meus educandos</h1>
+      <InstalarApp />
       {primeiro ? (
         <>
           <SeletorEducando educandos={educandos} activo={primeiro.id} />
