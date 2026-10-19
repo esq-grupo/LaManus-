@@ -75,6 +75,7 @@ model Estudante {
   notas          Nota[]
   encargos       Encargo[]
   pagamentos     Pagamento[]
+  notificacoes   Notificacao[]
   userId         String?                @unique @db.Uuid
   user           User?                  @relation(fields: [userId], references: [id])
   archivedAt     DateTime?
@@ -109,6 +110,7 @@ model User {
   estudante          Estudante?
   funcionario        Funcionario?
   encarregado        Encarregado?
+  notificacoes       Notificacao[]
 }
 
 model Role {
@@ -579,4 +581,32 @@ model Recibo {
 
   @@unique([serie, ano, numero])
   @@index([estudanteId])
+}
+
+// ───────── Entrega F: portais ─────────
+
+enum TipoNotificacao {
+  PAUTA_PUBLICADA
+  NOTA_CORRIGIDA
+  RECIBO_EMITIDO
+}
+
+// Aviso para UM destinatário (só ele o lê). Gerado pelo servidor; o texto é genérico (nunca contém notas nem valores).
+// `chave` torna a geração idempotente (única por destinatário). Se o destinatário perder o acesso ao educando, os avisos
+// desse educando deixam de ser listados (filtro pelo escopo actual).
+model Notificacao {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @db.Uuid
+  estudanteId String?         @db.Uuid
+  tipo        TipoNotificacao
+  titulo      String
+  corpo       String
+  chave       String
+  lidaEm      DateTime?
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  estudante   Estudante?      @relation(fields: [estudanteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chave])
+  @@index([userId, lidaEm, createdAt])
 }

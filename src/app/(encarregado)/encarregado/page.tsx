@@ -1,42 +1,37 @@
-import { ExtractoFinanceiro } from "@/components/ExtractoFinanceiro";
-import { QuadroNotas } from "@/components/QuadroNotas";
+import { PainelEducando } from "@/components/PainelEducando";
+import { SeletorEducando } from "@/components/SeletorEducando";
 import { exigirArea } from "@/server/auth/dal";
-import { extractoDoEstudante } from "@/server/modules/financeiro";
-import { notasDoEstudante } from "@/server/modules/notas-leitura";
-import { meusEducandos } from "@/server/modules/pessoas";
+import { educandosDoPortal } from "@/server/modules/pessoas";
 
 export const metadata = { title: "Portal do Encarregado — Lá Manu" };
 
-// Só aparecem educandos com ligação verificada E autorização activa, e só as notas já PUBLICADAS.
+// Só aparecem educandos com ligação verificada, autorização activa e dentro da validade; só notas já PUBLICADAS.
+// Sem educando escolhido mostra o primeiro; com vários há um selector (cada um tem o seu endereço).
 export default async function Pagina() {
   const user = await exigirArea("encarregado");
-  const educandos = await meusEducandos(user);
-  const notas = await Promise.all(educandos.map((e) => notasDoEstudante(user, e.id)));
-  const contas = await Promise.all(educandos.map((e) => extractoDoEstudante(user, e.id)));
+  const educandos = await educandosDoPortal(user);
+  const primeiro = educandos[0];
   return (
-    <main className="mx-auto max-w-2xl space-y-4 p-6">
+    <main className="mx-auto max-w-2xl space-y-4 p-4">
       <h1 className="text-xl font-semibold">Os meus educandos</h1>
-      {educandos.length === 0 ? (
+      {primeiro ? (
+        <>
+          <SeletorEducando educandos={educandos} activo={primeiro.id} />
+          <div className="space-y-2" data-testid="educando">
+            <p className="font-medium">
+              {primeiro.nome}{" "}
+              <span className="text-sm font-normal text-slate-600">
+                · Processo {primeiro.numeroProcesso}
+              </span>
+            </p>
+            <PainelEducando user={user} estudanteId={primeiro.id} />
+          </div>
+        </>
+      ) : (
         <p className="text-slate-600">
           Ainda não tem educandos associados. Se acabou de se registar, a secretaria precisa de
           verificar a ligação.
         </p>
-      ) : (
-        <ul className="space-y-4">
-          {educandos.map((e, i) => (
-            <li key={e.id} className="space-y-2" data-testid="educando">
-              <p className="font-medium">
-                {e.nome}{" "}
-                <span className="text-sm font-normal text-slate-600">
-                  · Processo {e.numeroProcesso}
-                </span>
-              </p>
-              {notas[i] && <QuadroNotas notas={notas[i]} />}
-              <h3 className="text-sm font-medium">Contas</h3>
-              {contas[i] && <ExtractoFinanceiro extracto={contas[i]} />}
-            </li>
-          ))}
-        </ul>
       )}
     </main>
   );

@@ -18,26 +18,21 @@ export function QuadroNotas({ notas }: { notas: NotasDoEstudante }) {
             {p.periodo}{" "}
             <span className="text-sm text-slate-600">· média geral {p.mediaGeral ?? "—"}</span>
           </h3>
-          <table className="mt-2 w-full text-left text-sm">
-            <thead>
-              <tr>
-                <th className="p-1">Disciplina</th>
-                <th className="p-1">Avaliações</th>
-                <th className="p-1">Média</th>
-              </tr>
-            </thead>
-            <tbody>
-              {p.disciplinas.map((d) => (
-                <tr key={d.disciplinaId} className="border-t">
-                  <td className="p-1">{d.disciplina}</td>
-                  <td className="p-1">
+          <ul className="mt-2 divide-y text-sm">
+            {p.disciplinas.map((d) => (
+              <li key={d.disciplinaId} className="flex items-start justify-between gap-3 py-2">
+                <div>
+                  <p className="font-medium">{d.disciplina}</p>
+                  <p className="text-slate-600">
                     {d.avaliacoes.map((a) => `${a.nome}: ${formatarNota(a.valor)}`).join(" · ")}
-                  </td>
-                  <td className="p-1 font-medium">{d.media ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </p>
+                </div>
+                <p className="shrink-0 text-base font-semibold" aria-label="Média">
+                  {d.media ?? "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
         </section>
       ))}
     </div>

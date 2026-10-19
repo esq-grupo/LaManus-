@@ -6,6 +6,7 @@ import { escopoTurmas } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
 import { formatarMedia, mediaPonderada, mediaSimples, notaParaCentesimas } from "@/lib/avaliacao";
 import { bloquearPauta } from "./pauta-lock";
+import { notificarNotaCorrigida, notificarPautaPublicada } from "./notificacoes";
 
 const uuid = z.string().uuid("Identificador inválido.");
 const motivoSchema = z.string().trim().min(5, "Indique o motivo (mínimo 5 caracteres).").max(300);
@@ -247,6 +248,8 @@ export async function publicarPauta(
       where: { turmaId_periodoId: { turmaId, periodoId } },
       data: { estado: "PUBLICADA", publicadaPorId: actor.id, publicadaEm: new Date() },
     });
+    // Avisos aos estudantes e encarregados na MESMA transacção: ou a pauta fica publicada com os avisos, ou nada.
+    await notificarPautaPublicada(tx, turmaId, periodoId);
     return {
       resultado: undefined,
       evento: {
@@ -347,6 +350,7 @@ export async function corrigirNota(
       const actual = await tx.nota.findUniqueOrThrow({ where: { id: nota.id } });
       if (actual.valor === valor) throw new ErroValidacao(["O valor é igual ao actual."]);
       await tx.$executeRaw`SELECT corrigir_nota_publicada(${nota.id}::uuid, ${valor}::int, ${tokenSessao}, ${m}, ${ip ?? null})`;
+      await notificarNotaCorrigida(tx, nota.estudanteId, nota.id);
     });
   } catch (e) {
     // A base de dados recusou a sessão/permissão: o utilizador vê uma mensagem genérica (sem detalhes técnicos).

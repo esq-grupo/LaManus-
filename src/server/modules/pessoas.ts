@@ -2,7 +2,7 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { comAuditoria } from "@/server/audit";
 import { can, type Principal } from "@/server/authz";
-import { escopoEstudantes } from "@/server/authz/scope";
+import { escopoEstudantes, escopoPortal } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao, ehViolacaoUnica } from "@/server/erros";
 import { dataSchema, hojeEmLuanda } from "@/lib/datas";
 import { mascararBi, normalizarBi } from "@/lib/mascarar";
@@ -213,6 +213,18 @@ export async function meusEducandos(actor: Principal) {
     select: { id: true, nome: true, numeroProcesso: true },
   });
   return lista;
+}
+
+/**
+ * Educandos de um utilizador NO PORTAL (estudante: ele próprio; encarregado: ligação verificada, activa e na validade).
+ * Ao contrário de `meusEducandos`, não inclui alunos a que o utilizador só tem acesso por outros papéis (p. ex. Docente).
+ */
+export async function educandosDoPortal(actor: Principal) {
+  return db.estudante.findMany({
+    where: { AND: [escopoPortal(actor), { archivedAt: null }] },
+    orderBy: { nome: "asc" },
+    select: { id: true, nome: true, numeroProcesso: true },
+  });
 }
 
 // ── Encarregados e ligações ──────────────────────────────────────────────────

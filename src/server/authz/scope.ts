@@ -95,6 +95,35 @@ export function escopoFinanceiro(principal: Principal, agora: Date = new Date())
   return filtros.length === 1 ? filtros[0]! : { OR: filtros };
 }
 
+/**
+ * Escopo do PORTAL (estudante e encarregado): só o próprio / os educandos com ligação verificada, autorização activa e dentro
+ * da validade. Sem papéis de gestão nem de docente: um Docente que também é Encarregado não ganha, no portal, os alunos que ensina.
+ */
+export function escopoPortal(principal: Principal, agora: Date = new Date()): FiltroEstudantes {
+  const papeis = new Set(principal.papeis);
+  const filtros: FiltroEstudantes[] = [];
+  if (papeis.has("ESTUDANTE")) filtros.push({ userId: principal.id });
+  if (papeis.has("ENCARREGADO")) {
+    const d = hojeEmLuanda(agora);
+    filtros.push({
+      archivedAt: null,
+      encarregados: {
+        some: {
+          verificado: true,
+          autorizacaoActiva: true,
+          encarregado: { userId: principal.id, archivedAt: null },
+          AND: [
+            { OR: [{ validoDe: null }, { validoDe: { lte: d } }] },
+            { OR: [{ validoAte: null }, { validoAte: { gte: d } }] },
+          ],
+        },
+      },
+    });
+  }
+  if (filtros.length === 0) return NADA;
+  return filtros.length === 1 ? filtros[0]! : { OR: filtros };
+}
+
 /** Quem gere o financeiro (vê todas as contas): Direcção, Secretaria e Financeiro. */
 export function veFinanceiroCompleto(principal: Principal): boolean {
   return (

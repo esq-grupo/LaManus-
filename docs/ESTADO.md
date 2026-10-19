@@ -11,9 +11,16 @@ Actualizado: 2026-10-17
 - **Entrega C:** FECHADA (Codex APROVADO COM RESSALVA OPERACIONAL — tratada com `db:preflight` — + OK do PO em 2026-10-16).
 - **Entrega D:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 3 + OK do PO em 2026-10-17).
 - **Entrega E:** FECHADA (Codex APROVADO na revisão n.º 3 + OK do PO em 2026-10-17).
-- **Entrega actual:** F — Portais (em curso).
+- **Entrega actual:** F — Portais (implementada; a aguardar CI, Codex e OK do PO).
 - **Depois:** F — Portais (só após Codex APROVADO + OK PO na E).
 - Decisões D1–D14 e P3 (cêntimos `BigInt`) em uso como provisórias (modo autorizar).
+
+## Tarefas da Entrega F
+- [x] Portais mobile-first (estudante e encarregado): notas publicadas, contas, recibos PDF
+- [x] Selector de educando; endereço por educando; acesso cruzado → 404
+- [x] Avisos (pauta publicada, nota corrigida, recibo emitido) com contador de não lidos
+- [x] Testes: 50 unitários, 187 integração, 27 e2e; Lighthouse móvel 0,97–0,99 / acessibilidade 1,00
+- [ ] CI, revisão Codex e OK do PO
 
 ## Tarefas da Entrega E
 - [x] Tipos de encargo; geração mensal em lote idempotente; encargo avulso; anulação com motivo

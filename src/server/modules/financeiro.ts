@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
-import { comAuditoria } from "@/server/audit";
+import { comAuditoria, registarAuditoria } from "@/server/audit";
 import { can, type Principal } from "@/server/authz";
 import { escopoFinanceiro, veFinanceiroCompleto } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao, ehViolacaoUnica } from "@/server/erros";
 import { dataSchema, hojeEmLuanda } from "@/lib/datas";
 import { kzParaCentimos } from "@/lib/dinheiro";
+import { notificarReciboEmitido } from "./notificacoes";
 import { estadoEncargo, mesesEntre, referenciaMensal } from "@/lib/financeiro";
 
 // Entrega E — Financeiro base (ADR-0004). Todo o dinheiro em cêntimos (BigInt).
@@ -355,6 +356,23 @@ export async function confirmarPagamento(
         { id: string }[]
       >`SELECT confirmar_pagamento(${id}::uuid, ${token}, ${ctx.ip ?? null}) AS id`,
   );
+  // O aviso é uma conveniência: a confirmação e o recibo já estão gravados. Se o aviso falhar, fica registado na auditoria
+  // (só ids) e a confirmação não é desfeita.
+  try {
+    const pag = await db.pagamento.findUniqueOrThrow({
+      where: { id },
+      select: { estudanteId: true },
+    });
+    await notificarReciboEmitido(db, pag.estudanteId, id);
+  } catch {
+    await registarAuditoria({
+      actorId: actor.id,
+      acao: "NOTIFICACAO_FALHOU",
+      entidade: "Pagamento",
+      entidadeId: id,
+      ip: ctx.ip,
+    });
+  }
   return r[0]!.id;
 }
 

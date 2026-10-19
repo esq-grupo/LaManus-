@@ -189,3 +189,18 @@ Desenho: `docs/decisions/ADR-0004-financeiro.md`. Dinheiro sempre em cêntimos (
 - «Quem confirma pagamentos»: **decidido pelo PO em 2026-10-17** — a Direcção, pessoa diferente de quem registou.
 - Sem multa por atraso, sem referência multibanco e sem exportação CSV (fora do âmbito da Entrega E).
 - Os testes apagam recibos de dados de teste com a ligação do dono, por isso a verificação global da numeração (`reconciliacao_numeracao`) só se aplica a bases sem limpeza de testes (produção).
+
+## 11. Estado de implementação — Entrega F (2026-10-18)
+
+Desenho: `docs/decisions/ADR-0005-portais.md`.
+
+### Garantias testadas
+- **Acesso cruzado.** Estudante: só o próprio. Encarregado: só educandos com ligação verificada, autorização activa e dentro da validade. Trocar o id no endereço (por verificar, de outra família, inexistente, lixo) devolve 404 igual (e2e). Notas, contas e recibos de outro estudante são recusados pelos serviços (integração).
+- **`escopoPortal`** não herda outros papéis (Docente+Encarregado não ganha os alunos que ensina).
+- **Avisos.** Um destinatário; ninguém lê nem marca os de outro, mesmo sabendo o id; a geração não cria linhas para quem não tem acesso (teste directo às linhas, não só ao filtro de leitura); revogar a ligação esconde os avisos do educando; o texto não se altera (gatilho); sem notas nem valores nos avisos.
+- **Mobile.** A 360×640: sem rolagem horizontal e alvos de toque ≥ 44 px (e2e). Lighthouse (emulação móvel, ligação lenta simulada, `next start`, sessão real): estudante — desempenho 0,97, acessibilidade 1,00, boas práticas 0,96; encarregado — 0,99 / 1,00 / 0,96; LCP 2,3 s / 1,6 s, CLS 0.
+
+### Limitações conhecidas (Entrega F)
+- Lighthouse correu em HTTP local (sem TLS): as «boas práticas» a 0,96 reflectem isso; repetir em staging com TLS (Entrega H).
+- Só canal APP; sem e-mail/SMS/push. O aviso de recibo é «melhor esforço» (falha auditada, não desfaz a confirmação).
+- Sem teste de carga do servidor (ADR-0001) — Entrega H.

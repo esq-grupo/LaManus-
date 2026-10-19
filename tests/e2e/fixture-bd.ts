@@ -20,3 +20,8 @@ export const limparFixture = (fx: FixtureAvaliacao) =>
   void correr("limpar", JSON.stringify(fx.ids));
 
 export const limparFinanceiro = () => void correr("financeiro-limpar");
+
+import type { FixturePortais } from "./fixture-cli";
+export const criarPortais = (senha: string) => correr("portais-criar", senha) as FixturePortais;
+export const limparPortais = (fx: FixturePortais) =>
+  void correr("portais-limpar", JSON.stringify(fx));

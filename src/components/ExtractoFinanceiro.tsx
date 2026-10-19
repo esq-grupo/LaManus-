@@ -58,74 +58,55 @@ export function ExtractoFinanceiro({ extracto }: { extracto: DadosExtracto }) {
           </dd>
         </div>
       </dl>
-      <table className="w-full text-sm">
-        <caption className="text-left font-medium">Encargos</caption>
-        <thead>
-          <tr className="text-left text-slate-600">
-            <th>Descrição</th>
-            <th>Vencimento</th>
-            <th>Valor</th>
-            <th>Pago</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {extracto.encargos.map((e) => (
-            <tr key={e.id} className="border-t" data-testid={`encargo-${e.descricao}`}>
-              <td>{e.descricao}</td>
-              <td>{formatarData(e.vencimento)}</td>
-              <td>{formatarKz(e.valor)}</td>
-              <td>{formatarKz(e.pago)}</td>
-              <td>
-                <span className={`rounded px-1 text-xs ${COR[e.estado]}`}>{e.estado}</span>
-              </td>
-            </tr>
-          ))}
-          {extracto.encargos.length === 0 && (
-            <tr>
-              <td colSpan={5} className="text-slate-600">
-                Sem encargos.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      <table className="w-full text-sm">
-        <caption className="text-left font-medium">Pagamentos</caption>
-        <thead>
-          <tr className="text-left text-slate-600">
-            <th>Data</th>
-            <th>Valor</th>
-            <th>Estado</th>
-            <th>Recibo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {extracto.pagamentos.map((p) => (
-            <tr key={p.id} className="border-t">
-              <td>{formatarData(p.dataPagamento)}</td>
-              <td>{formatarKz(p.valor)}</td>
-              <td>{p.estado}</td>
-              <td>
-                {p.recibo ? (
-                  <a className="underline" href={`/recibos/${p.id}`} data-testid="recibo">
-                    {formatarNumeroRecibo(p.recibo)}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </td>
-            </tr>
-          ))}
-          {extracto.pagamentos.length === 0 && (
-            <tr>
-              <td colSpan={4} className="text-slate-600">
-                Sem pagamentos.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <h3 className="font-medium">Encargos</h3>
+      <ul className="divide-y rounded border bg-white text-sm">
+        {extracto.encargos.map((e) => (
+          <li
+            key={e.id}
+            className="flex items-start justify-between gap-3 p-3"
+            data-testid={`encargo-${e.descricao}`}
+          >
+            <div>
+              <p className="font-medium">{e.descricao}</p>
+              <p className="text-slate-600">
+                Vence em {formatarData(e.vencimento)} · pago {formatarKz(e.pago)} de{" "}
+                {formatarKz(e.valor)}
+              </p>
+            </div>
+            <span className={`shrink-0 rounded px-2 py-1 text-xs ${COR[e.estado]}`}>
+              {e.estado}
+            </span>
+          </li>
+        ))}
+        {extracto.encargos.length === 0 && <li className="p-3 text-slate-600">Sem encargos.</li>}
+      </ul>
+      <h3 className="font-medium">Pagamentos</h3>
+      <ul className="divide-y rounded border bg-white text-sm">
+        {extracto.pagamentos.map((p) => (
+          <li key={p.id} className="flex items-start justify-between gap-3 p-3">
+            <div>
+              <p className="font-medium">{formatarKz(p.valor)}</p>
+              <p className="text-slate-600">
+                {formatarData(p.dataPagamento)} · {p.estado}
+              </p>
+            </div>
+            {p.recibo ? (
+              <a
+                className="shrink-0 rounded border px-3 py-2 underline"
+                href={`/recibos/${p.id}`}
+                data-testid="recibo"
+              >
+                Recibo {formatarNumeroRecibo(p.recibo)}
+              </a>
+            ) : (
+              <span className="shrink-0 text-slate-500">sem recibo</span>
+            )}
+          </li>
+        ))}
+        {extracto.pagamentos.length === 0 && (
+          <li className="p-3 text-slate-600">Sem pagamentos.</li>
+        )}
+      </ul>
     </section>
   );
 }
