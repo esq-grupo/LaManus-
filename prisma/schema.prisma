@@ -633,22 +633,22 @@ enum EstadoPedido {
 }
 
 model PedidoDeclaracao {
-  id             String              @id @default(uuid()) @db.Uuid
-  estudanteId    String              @db.Uuid
-  anoLectivoId   String              @db.Uuid
-  tipo           TipoDeclaracao
-  finalidade     String
-  estado         EstadoPedido        @default(PEDIDO)
-  pedidoPorId    String              @db.Uuid
-  createdAt      DateTime            @default(now())
-  decididoPorId  String?             @db.Uuid
-  decididoEm     DateTime?
-  motivoDecisao  String?
-  emitidoPorId   String?             @db.Uuid
-  emitidoEm      DateTime?
-  canceladoEm    DateTime?
-  estudante      Estudante           @relation(fields: [estudanteId], references: [id])
-  emitida        DeclaracaoEmitida?
+  id            String             @id @default(uuid()) @db.Uuid
+  estudanteId   String             @db.Uuid
+  anoLectivoId  String             @db.Uuid
+  tipo          TipoDeclaracao
+  finalidade    String
+  estado        EstadoPedido       @default(PEDIDO)
+  pedidoPorId   String             @db.Uuid
+  createdAt     DateTime           @default(now())
+  decididoPorId String?            @db.Uuid
+  decididoEm    DateTime?
+  motivoDecisao String?
+  emitidoPorId  String?            @db.Uuid
+  emitidoEm     DateTime?
+  canceladoEm   DateTime?
+  estudante     Estudante          @relation(fields: [estudanteId], references: [id])
+  emitida       DeclaracaoEmitida?
 
   @@index([estudanteId, createdAt])
   @@index([estado, createdAt])
@@ -656,23 +656,44 @@ model PedidoDeclaracao {
 
 // Instantâneo IMUTÁVEL do que foi emitido; o PDF gera-se sempre a partir daqui.
 model DeclaracaoEmitida {
-  id          String           @id @default(uuid()) @db.Uuid
-  pedidoId    String           @unique @db.Uuid
-  serie       String
-  ano         Int
-  numero      Int
-  codigo      String           @unique
-  dados       Json
-  emitidaEm   DateTime         @default(now())
-  pedido      PedidoDeclaracao @relation(fields: [pedidoId], references: [id])
+  id        String           @id @default(uuid()) @db.Uuid
+  pedidoId  String           @unique @db.Uuid
+  serie     String
+  ano       Int
+  numero    Int
+  codigo    String           @unique
+  dados     Json
+  emitidaEm DateTime         @default(now())
+  pedido    PedidoDeclaracao @relation(fields: [pedidoId], references: [id])
 
   @@unique([serie, ano, numero])
 }
 
 model SerieDocumento {
-  serie    String
-  ano      Int
-  proximo  Int    @default(1)
+  serie   String
+  ano     Int
+  proximo Int    @default(1)
 
   @@id([serie, ano])
+}
+
+// ───────── Entrega H: importação de dados ─────────
+
+enum EstadoLote {
+  APLICADO
+  REVERTIDO
+}
+
+// Um lote de importação (identificável para auditoria e reversão). O manifesto guarda só IDS (nunca dados pessoais).
+model LoteMigracao {
+  id             String     @id @default(uuid()) @db.Uuid
+  ficheiro       String
+  ficheiroSha256 String
+  estado         EstadoLote @default(APLICADO)
+  resumo         Json
+  manifesto      Json
+  criadoEm       DateTime   @default(now())
+  revertidoEm    DateTime?
+
+  @@index([criadoEm])
 }

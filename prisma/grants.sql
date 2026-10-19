@@ -64,3 +64,6 @@ BEGIN
   END IF;
 END
 $auth$;
+
+-- Lotes de importação: só o dono (CLI de administração) os lê e escreve.
+REVOKE ALL ON "LoteMigracao" FROM lamanus_app;

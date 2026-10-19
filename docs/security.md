@@ -246,3 +246,6 @@ Desenho: `docs/decisions/ADR-0008-isolamento-sessoes-papeis-auditoria.md`. Fecha
 - Quem controle o **processo da aplicação inteiro** (que tem as duas ligações) ou o **dono da base de dados** continua fora desta protecção.
 - Eventos de origem `APP` podem ter o **autor** falsificado por quem tenha SQL na ligação `lamanus_app` (por isso as acções críticas são `BD`). Cadeia de integridade da auditoria (detectar apagamentos feitos pelo dono) fica para a parte 2 da H, junto com a exportação/backup.
 - A palavra-passe continua a ser verificada na aplicação (argon2id), não na BD (ver ADR-0008, decisão 2).
+
+## 15. Importação de dados (Entrega H, parte 2 — 2026-10-20)
+Desenho: ADR-0009. Garantias testadas: ensaio por omissão (gravar exige `--aplicar` + `CONFIRMO_IMPORTACAO=SIM`); ligações importadas entram por verificar (sem acesso aos portais); duplicados/ambiguidades rejeitados e nunca fundidos; repetir não duplica; lote numa transacção (falha a meio não grava nada); reversão recusada se há dependências; relatórios sem dados pessoais completos e sem injecção de fórmulas; auditoria do lote com origem BD e sem dados pessoais. **Limite:** ainda não foi analisado nenhum ficheiro real; dados reais só em ambiente seguro e com autorização do PO.

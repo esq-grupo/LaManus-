@@ -1,7 +1,28 @@
-# Migração de Excel — especificação (Entrega H; sem código antes de analisar ficheiros reais)
+# Migração de Excel — especificação e importador (Entrega H)
 
 ## 1. Estado
-Ainda **não temos** ficheiros de exemplo. Nada será importado sem os analisar em ambiente seguro e sem autorização do PO.
+- **Motor de importação feito e testado com dados FICTÍCIOS** (Entrega H, parte 2): leitura do `.xlsx`, validação em modo ensaio, relatório, aplicação por lote numa transacção, idempotência e reversão. Decisão do PO: **importar as linhas válidas e rejeitar as erradas** (a escola corrige e reenvia; repetir não duplica).
+- Continuamos **sem ficheiros reais**. Nada será importado sem os analisar em ambiente seguro e sem autorização do PO; o formato abaixo é o do **ficheiro de importação** (modelo). Se o Excel da escola for diferente, acrescenta-se uma camada de mapeamento *depois* de o analisar.
+
+### Formato do ficheiro de importação (`.xlsx`, uma folha por tema; cabeçalhos tolerantes a acentos/maiúsculas)
+| Folha | Colunas obrigatórias | Opcionais |
+|---|---|---|
+| Estudantes | N.º Processo, Nome, Data de Nascimento | BI, Contacto |
+| Encarregados | BI, Nome | Contacto |
+| Ligações | N.º Processo, BI Encarregado, Parentesco | Principal |
+| Matrículas | N.º Processo, Ano Lectivo, Classe, Turma, Tipo (Nova/Renovação) | — |
+| Saldos | N.º Processo, Ano Lectivo, Valor Kz, Vencimento | Descrição |
+
+Regras: o **ano lectivo, a classe e a turma têm de existir já** (crie a estrutura escolar primeiro); ligações entram **sempre por verificar** (o acesso aos portais é decidido pela Secretaria); saldos entram como **encargos de abertura** («Saldo transitado»); duplicados e ambiguidades vão para revisão manual, nunca se fundem; datas `AAAA-MM-DD` ou `DD/MM/AAAA`; Kz inteiros (`50000`, `50 000`, `50.000,00`).
+
+### Como usar (administração, fora da aplicação web)
+```
+npm run importar -- ficheiro.xlsx                                     # ENSAIO: valida, escreve o relatório, não grava
+CONFIRMO_IMPORTACAO=SIM npm run importar -- ficheiro.xlsx --aplicar  # grava só as linhas válidas (um lote)
+CONFIRMO_IMPORTACAO=SIM npm run importar -- --reverter <idDoLote>    # anula o que o lote criou (recusa se já há pagamentos, etc.)
+npx tsx scripts/gerar-exemplo-importacao.ts "<ano>" "<classe>" "<turma>"   # Excel de EXEMPLO fictício
+```
+O relatório (`importacao/relatorios/*.md` e `.csv`, **fora do Git**) traz o que entra, o que fica de fora (folha, linha, coluna, valor **mascarado**, motivo), os totais para reconciliar e a lista de confirmação para a escola assinar.
 
 ## 2. O que pedir à escola
 1. Excel(s) actuais de: estudantes, encarregados, turmas, matrículas, propinas/pagamentos, dívidas em aberto.

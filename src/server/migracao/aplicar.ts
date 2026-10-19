@@ -1,0 +1,241 @@
+import type { PrismaClient } from "@/generated/prisma/client";
+import { hojeEmLuanda } from "@/lib/datas";
+import { normalizarTexto } from "@/lib/migracao/validar";
+import type { Contexto, Plano } from "@/lib/migracao/tipos";
+
+// Aplicação (e reversão) de um lote de importação. Corre com a ligação de ADMINISTRAÇÃO (dono), fora da aplicação web:
+// a importação é um acto de administração autorizado, não uma funcionalidade aberta a utilizadores.
+
+export const TIPO_SALDO = "Saldo transitado";
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+export async function carregarContexto(db: PrismaClient, agora = new Date()): Promise<Contexto> {
+  const [estudantes, encarregados, ligacoes, matriculas, turmas, anos, saldos] = await Promise.all([
+    db.estudante.findMany({
+      select: { numeroProcesso: true, nome: true, dataNascimento: true, bi: true },
+    }),
+    db.encarregado.findMany({ where: { bi: { not: null } }, select: { bi: true, nome: true } }),
+    db.estudanteEncarregado.findMany({
+      select: {
+        estudante: { select: { numeroProcesso: true } },
+        encarregado: { select: { bi: true } },
+      },
+    }),
+    db.matricula.findMany({
+      select: {
+        estudante: { select: { numeroProcesso: true } },
+        anoLectivoId: true,
+        tipo: true,
+        estado: true,
+      },
+    }),
+    db.turma.findMany({
+      where: { archivedAt: null },
+      select: {
+        id: true,
+        nome: true,
+        anoLectivoId: true,
+        classe: { select: { nome: true } },
+        anoLectivo: { select: { nome: true } },
+      },
+    }),
+    db.anoLectivo.findMany({ select: { id: true, nome: true } }),
+    db.encargo.findMany({
+      where: { referencia: { startsWith: "ABERTURA-" } },
+      select: { anoLectivoId: true, estudante: { select: { numeroProcesso: true } } },
+    }),
+  ]);
+  return {
+    hoje: hojeEmLuanda(agora),
+    estudantes: new Map(
+      estudantes.map((e) => [
+        e.numeroProcesso,
+        { nome: e.nome, dataNascimento: iso(e.dataNascimento), bi: e.bi },
+      ]),
+    ),
+    biDeEstudantes: new Map(estudantes.filter((e) => e.bi).map((e) => [e.bi!, e.numeroProcesso])),
+    encarregados: new Map(encarregados.map((e) => [e.bi!, { nome: e.nome }])),
+    ligacoes: new Set(
+      ligacoes
+        .filter((l) => l.encarregado.bi)
+        .map((l) => `${l.estudante.numeroProcesso}|${l.encarregado.bi}`),
+    ),
+    matriculas: matriculas.map((m) => ({
+      numeroProcesso: m.estudante.numeroProcesso,
+      anoLectivoId: m.anoLectivoId,
+      tipo: m.tipo,
+      estado: m.estado,
+    })),
+    turmas: new Map(
+      turmas.map((t) => [
+        [t.anoLectivo.nome, t.classe.nome, t.nome].map(normalizarTexto).join("|"),
+        { turmaId: t.id, anoLectivoId: t.anoLectivoId },
+      ]),
+    ),
+    anos: new Map(anos.map((a) => [normalizarTexto(a.nome), a.id])),
+    saldosExistentes: new Set(saldos.map((s) => `${s.estudante.numeroProcesso}|${s.anoLectivoId}`)),
+  };
+}
+
+export interface Manifesto {
+  estudantes: string[];
+  encarregados: string[];
+  ligacoes: { estudanteId: string; encarregadoId: string }[];
+  matriculas: string[];
+  encargos: string[];
+}
+
+/**
+ * Grava o plano numa única transacção e regista o lote (só IDs no manifesto). Ligações entram SEMPRE por verificar
+ * (`verificado=false`): importar dados nunca dá acesso aos portais. Saldos entram como encargos de abertura.
+ */
+export async function aplicarPlano(
+  db: PrismaClient,
+  plano: Plano,
+  meta: { ficheiro: string; sha256: string },
+) {
+  return db.$transaction(
+    async (tx) => {
+      const man: Manifesto = {
+        estudantes: [],
+        encarregados: [],
+        ligacoes: [],
+        matriculas: [],
+        encargos: [],
+      };
+      const idEst = new Map<string, string>();
+      const idEnc = new Map<string, string>();
+      for (const e of plano.estudantes) {
+        const c = await tx.estudante.create({
+          data: {
+            numeroProcesso: e.numeroProcesso,
+            nome: e.nome,
+            dataNascimento: new Date(`${e.dataNascimento}T00:00:00.000Z`),
+            bi: e.bi,
+            contacto: e.contacto,
+          },
+        });
+        idEst.set(e.numeroProcesso, c.id);
+        man.estudantes.push(c.id);
+      }
+      for (const e of plano.encarregados) {
+        const c = await tx.encarregado.create({
+          data: { nome: e.nome, bi: e.bi, contacto: e.contacto },
+        });
+        idEnc.set(e.bi, c.id);
+        man.encarregados.push(c.id);
+      }
+      const estudanteId = async (np: string) =>
+        idEst.get(np) ??
+        (await tx.estudante.findUniqueOrThrow({ where: { numeroProcesso: np } })).id;
+      const encarregadoId = async (bi: string) =>
+        idEnc.get(bi) ?? (await tx.encarregado.findUniqueOrThrow({ where: { bi } })).id;
+      for (const l of plano.ligacoes) {
+        const par = {
+          estudanteId: await estudanteId(l.numeroProcesso),
+          encarregadoId: await encarregadoId(l.bi),
+        };
+        await tx.estudanteEncarregado.create({
+          data: {
+            ...par,
+            parentesco: l.parentesco,
+            principal: l.principal,
+            verificado: false,
+            autorizacaoActiva: true,
+          },
+        });
+        man.ligacoes.push(par);
+      }
+      for (const m of plano.matriculas) {
+        const c = await tx.matricula.create({
+          data: {
+            estudanteId: await estudanteId(m.numeroProcesso),
+            turmaId: m.turmaId,
+            anoLectivoId: m.anoLectivoId,
+            tipo: m.tipo,
+            estado: "ACTIVA",
+          },
+        });
+        man.matriculas.push(c.id);
+      }
+      if (plano.saldos.length > 0) {
+        const tipo =
+          (await tx.tipoEncargo.findUnique({ where: { nome: TIPO_SALDO } })) ??
+          (await tx.tipoEncargo.create({
+            data: { nome: TIPO_SALDO, valorReferencia: 0n, periodicidade: "UNICO" },
+          }));
+        for (const s of plano.saldos) {
+          const c = await tx.encargo.create({
+            data: {
+              estudanteId: await estudanteId(s.numeroProcesso),
+              tipoEncargoId: tipo.id,
+              anoLectivoId: s.anoLectivoId,
+              referencia: `ABERTURA-${s.anoLectivoId}`,
+              descricao: s.descricao,
+              valor: s.valorCentimos,
+              vencimento: new Date(`${s.vencimento}T00:00:00.000Z`),
+            },
+          });
+          man.encargos.push(c.id);
+        }
+      }
+      const resumo = {
+        importadas: {
+          estudantes: plano.estudantes.length,
+          encarregados: plano.encarregados.length,
+          ligacoes: plano.ligacoes.length,
+          matriculas: plano.matriculas.length,
+          saldos: plano.saldos.length,
+        },
+        rejeitadas: plano.problemas.filter((p) => p.tipo === "REJEITADA").length,
+        transformadas: plano.problemas.filter((p) => p.tipo === "TRANSFORMADA").length,
+        jaExistiam: plano.problemas.filter((p) => p.tipo === "JA_EXISTE").length,
+      };
+      const lote = await tx.loteMigracao.create({
+        data: {
+          ficheiro: meta.ficheiro,
+          ficheiroSha256: meta.sha256,
+          resumo,
+          manifesto: man as unknown as object,
+        },
+      });
+      // Evento de origem BD (o dono escreve); sem dados pessoais.
+      await tx.eventoAuditoria.create({
+        data: {
+          acao: "LOTE_MIGRACAO_APLICADO",
+          entidade: "LoteMigracao",
+          entidadeId: lote.id,
+          depois: { ...resumo, ficheiroSha256: meta.sha256 },
+        },
+      });
+      return { lote, resumo };
+    },
+    { timeout: 120_000 },
+  );
+}
+
+/** Anula um lote (apaga o que ele criou). Recusa se já há dependências (pagamentos alocados, notas, …): nesse caso corrige-se à mão. */
+export async function reverterLote(db: PrismaClient, loteId: string) {
+  return db.$transaction(
+    async (tx) => {
+      const lote = await tx.loteMigracao.findUniqueOrThrow({ where: { id: loteId } });
+      if (lote.estado !== "APLICADO") throw new Error("O lote já foi revertido.");
+      const m = lote.manifesto as unknown as Manifesto;
+      await tx.encargo.deleteMany({ where: { id: { in: m.encargos } } });
+      await tx.matricula.deleteMany({ where: { id: { in: m.matriculas } } });
+      for (const l of m.ligacoes) await tx.estudanteEncarregado.deleteMany({ where: l });
+      await tx.encarregado.deleteMany({
+        where: { id: { in: m.encarregados }, estudantes: { none: {} } },
+      });
+      await tx.estudante.deleteMany({ where: { id: { in: m.estudantes } } });
+      await tx.loteMigracao.update({
+        where: { id: loteId },
+        data: { estado: "REVERTIDO", revertidoEm: new Date() },
+      });
+      await tx.eventoAuditoria.create({
+        data: { acao: "LOTE_MIGRACAO_REVERTIDO", entidade: "LoteMigracao", entidadeId: loteId },
+      });
+    },
+    { timeout: 120_000 },
+  );
+}

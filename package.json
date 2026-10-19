@@ -21,12 +21,14 @@
     "db:deploy": "prisma migrate deploy && tsx scripts/aplicar-grants.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:preflight": "tsx scripts/preflight-migracoes.ts",
-    "db:grants": "tsx scripts/aplicar-grants.ts"
+    "db:grants": "tsx scripts/aplicar-grants.ts",
+    "importar": "tsx scripts/importar.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.2.2",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "exceljs": "4.4.0",
     "next": "^16.4.0",
     "pdf-lib": "1.17.1",
     "pg": "^8.23.1",

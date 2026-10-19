@@ -16,3 +16,6 @@ dados-reais/
 *.csv
 armazenamento/
 AGENTS.md
+
+# Importação de dados (ficheiros e relatórios podem conter dados pessoais)
+importacao/

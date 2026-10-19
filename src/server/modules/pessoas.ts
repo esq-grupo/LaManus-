@@ -5,6 +5,7 @@ import { can, type Principal } from "@/server/authz";
 import { escopoEstudantes, escopoPortal } from "@/server/authz/scope";
 import { ErroAutorizacao, ErroValidacao, ehViolacaoUnica } from "@/server/erros";
 import { dataSchema, hojeEmLuanda } from "@/lib/datas";
+import { PARENTESCOS } from "@/lib/parentescos";
 import { mascararBi, normalizarBi } from "@/lib/mascarar";
 
 function exigir(actor: Principal, p: "estudantes:ver" | "estudantes:editar") {
@@ -228,16 +229,6 @@ export async function educandosDoPortal(actor: Principal) {
 }
 
 // ── Encarregados e ligações ──────────────────────────────────────────────────
-
-const PARENTESCOS = [
-  "Pai",
-  "Mãe",
-  "Avô/Avó",
-  "Tio/Tia",
-  "Irmão/Irmã",
-  "Tutor legal",
-  "Outro",
-] as const;
 
 const ligarSchema = z.object({
   estudanteId: uuid,
