@@ -27,6 +27,7 @@ Actualizado: 2026-10-17
   - H2 (revisão 2, concorrência): `reverterLote` bloqueia (`FOR UPDATE`) o lote, os estudantes, os encarregados e as ligações do lote (revisão 3: verificação concorrente pela Secretaria) antes de verificar; alterações, pagamentos/matrículas (chave estrangeira) e reversões simultâneas esperam. Teste concorrente + mutação detectada.
   - H3: o contentor `app` deixou de receber credenciais de administração (só `lamanus_app` e `lamanus_auth`); `.env.staging.example` passou a ser versionado (o `.gitignore` ignorava-o); teste `staging.test.ts` impede regressões.
 - [x] D11 — envio por SMTP genérico (nodemailer; STARTTLS/TLS obrigatório em produção; erro genérico sem credenciais; `SMTP_*`). Decisão do PO: SMTP genérico configurável. Testado com servidor falso no CI; **falta validar com o serviço real da escola**
+- [x] Preparação do servidor: `scripts/verificar-servidor.sh` (pré-verificação, testada), `docs/guia-tecnico-servidor.md`, `docs/revisoes/PEDIDO-REVISAO-ENTREGA-H.md`. **A aguardar o técnico do servidor da escola.**
 - [ ] H4 (dossiê para a escola em docs/dossie-validacao-escola.md) — Testes de aceitação com a escola, checklist de go-live, Lighthouse/carga em staging
 
 ## PWA (pedido do PO, 2026-10-19)

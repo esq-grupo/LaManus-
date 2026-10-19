@@ -9,6 +9,7 @@ Três serviços em Docker Compose (`docker-compose.staging.yml`): **db** (Postgr
 Servidor Linux com Docker + Docker Compose, domínio público a apontar para o servidor (para o certificado Let's Encrypt), acesso SMTP (convites/recuperação de palavra-passe), disco para dados e cópias (idealmente cópias noutro disco/local), relógio sincronizado (NTP). Preencher os `SMTP_*` em `.env.staging` (servidor, porta 587/STARTTLS ou 465/`SMTP_SEGURO=sim`, utilizador, palavra-passe, remetente); sem eles o `app` nem arranca no Compose.
 
 ## 3. Primeira instalação
+0. Antes de tudo: `bash scripts/verificar-servidor.sh .env.staging` (só lê; tem de terminar sem ERRO). Guia do técnico: `docs/guia-tecnico-servidor.md`.
 1. Clonar o repositório e copiar `.env.staging.example` para `.env.staging` (`chmod 600`); preencher **segredos fortes e diferentes** (dono, `lamanus_app`, `lamanus_auth`) e o domínio. Nunca fazer commit deste ficheiro.
 2. `docker compose --env-file .env.staging -f docker-compose.staging.yml up -d db` — cria a base de dados **e os papéis** (`docker/db/papeis.sql`).
 3. Migrações, privilégios e permissões (como dono): `docker compose --env-file .env.staging -f docker-compose.staging.yml --profile migrar run --rm migrar`.
