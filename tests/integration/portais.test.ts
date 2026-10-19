@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Cenario } from "./cenario";
 import { abrirSessao, corrigirComSessao, db, dbAdmin, prepararBd } from "./ajuda";
 import { criarAvaliacao, lancarNotas } from "@/server/modules/avaliacao";
-import { publicarPauta, validarPauta } from "@/server/modules/pautas";
+import { publicarPauta, reabrirPauta, validarPauta } from "@/server/modules/pautas";
 import { notasDoEstudante } from "@/server/modules/notas-leitura";
 import {
   confirmarPagamento,
@@ -73,6 +73,7 @@ async function cena() {
   ]);
   await validarPauta(direccao, turma.id, p1.id);
   return {
+    disc,
     docente,
     direccao,
     ano,
@@ -226,6 +227,43 @@ describe("portais — acesso cruzado (alterar o id no pedido)", () => {
       expect(await notasDoEstudante(u, x.est.id)).toBeNull();
       await expect(extractoDoEstudante(u, x.est.id)).rejects.toBeInstanceOf(ErroAutorizacao);
     }
+  });
+
+  it("Docente+Encarregado: a vista «publicadas» só vale para os SEUS educandos (revisão do Codex à Entrega F)", async () => {
+    const x = await cena(); // disciplina `disc` é de x.docente; vamos pôr uma 2.ª disciplina de OUTRO docente com notas publicadas
+    const misto = await c.principal("DOCENTE", "ENCARREGADO");
+    const fMisto = await c.funcionario(misto.id);
+    const dMisto = await c.disciplina();
+    const tdMisto = await db.turmaDisciplina.create({
+      data: { turmaId: x.turma.id, disciplinaId: dMisto.id, docenteId: fMisto.id },
+    });
+    const dia = new Date(x.p1.inicio.getTime() + 6 * 864e5).toISOString().slice(0, 10);
+    await reabrirPauta(x.direccao, x.turma.id, x.p1.id, "Juntar a disciplina do colega");
+    const av = await criarAvaliacao(misto, {
+      turmaDisciplinaId: tdMisto.id,
+      periodoId: x.p1.id,
+      tipo: "TESTE",
+      nome: "Teste do misto",
+      peso: 100,
+      data: dia,
+    });
+    await lancarNotas(misto, av, [
+      { estudanteId: x.est.id, valor: "11" },
+      { estudanteId: x.outroEst.id, valor: "12" },
+    ]);
+    await validarPauta(x.direccao, x.turma.id, x.p1.id);
+    await publicarPauta(x.direccao, x.turma.id, x.p1.id);
+    const disciplinasDe = (r: Awaited<ReturnType<typeof notasDoEstudante>>) =>
+      r!.periodos.flatMap((p) => p.disciplinas.map((d) => d.disciplinaId));
+    // como DOCENTE vê só a sua disciplina (não a do colega), apesar de as pautas estarem publicadas
+    expect(disciplinasDe(await notasDoEstudante(misto, x.est.id))).toEqual([dMisto.id]);
+    // ligado como encarregado a OUTRO aluno da turma passa a ver tudo o que está publicado desse aluno — e só desse
+    const enc = await c.encarregado(misto.id);
+    await c.ligar(x.outroEst.id, enc.id, { verificado: true, autorizacaoActiva: true });
+    expect(disciplinasDe(await notasDoEstudante(misto, x.outroEst.id)).sort()).toEqual(
+      [x.disc.id, dMisto.id].sort(),
+    );
+    expect(disciplinasDe(await notasDoEstudante(misto, x.est.id))).toEqual([dMisto.id]);
   });
 
   it("escopoPortal: Docente+Encarregado não ganha os alunos que ensina; sem papéis de portal → nada", async () => {

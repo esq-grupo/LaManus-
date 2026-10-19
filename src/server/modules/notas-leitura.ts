@@ -1,7 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/server/db";
 import { can, type Principal } from "@/server/authz";
-import { escopoEstudantes } from "@/server/authz/scope";
+import { escopoEstudantes, escopoPortal } from "@/server/authz/scope";
 import { ErroAutorizacao } from "@/server/erros";
 import { formatarMedia, mediaPonderada, mediaSimples } from "@/lib/avaliacao";
 
@@ -92,13 +92,28 @@ export async function notasDoEstudante(
   estudanteId: string,
 ): Promise<NotasDoEstudante | null> {
   if (!can(actor, "notas:ver")) throw new ErroAutorizacao();
-  const vistas = vistasDe(actor);
-  if (vistas.length === 0) throw new ErroAutorizacao();
-  const visivel = await db.estudante.findFirst({
-    where: { AND: [{ id: estudanteId }, escopoEstudantes(actor), { archivedAt: null }] },
-    select: { id: true },
-  });
-  if (!visivel) return null;
+  const papeisVistas = vistasDe(actor);
+  if (papeisVistas.length === 0) throw new ErroAutorizacao();
+  // Cada vista tem o SEU escopo (revisão do Codex à Entrega F): quem acumula papéis não soma os alcances. A vista «publicadas»
+  // (portal) só vale para o próprio / educandos verificados e activos; um Docente que também é Encarregado não vê, por essa
+  // via, as notas publicadas de outras disciplinas dos alunos que ensina.
+  const alvo = { id: estudanteId, archivedAt: null };
+  const [geral, portal] = await Promise.all([
+    papeisVistas.some((v) => v !== "publicadas")
+      ? db.estudante.findFirst({
+          where: { AND: [alvo, escopoEstudantes(actor)] },
+          select: { id: true },
+        })
+      : null,
+    papeisVistas.includes("publicadas")
+      ? db.estudante.findFirst({
+          where: { AND: [alvo, escopoPortal(actor)] },
+          select: { id: true },
+        })
+      : null,
+  ]);
+  const vistas = papeisVistas.filter((v) => (v === "publicadas" ? portal : geral));
+  if (vistas.length === 0) return null;
 
   const porId = new Map<string, LinhaNota>();
   for (const v of vistas)
