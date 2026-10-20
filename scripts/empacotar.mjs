@@ -22,6 +22,8 @@ const commit = process.env.COMMIT ?? "";
 if (!/^[0-9a-f]{40}$/.test(commit))
   throw new Error("Defina COMMIT com o hash completo (40 caracteres).");
 const hash12 = commit.slice(0, 12);
+// Pasta com docker/pacote/* (por omissão a raiz; o fluxo pode trazê-las de outro commit — ver .github/workflows/pacote.yml).
+const ferr = process.env.FERRAMENTAS ?? ".";
 const nome = `lamanus-${hash12}-linux-x64`;
 const saida = "saida";
 const raiz = path.join(saida, "pacote");
@@ -59,13 +61,16 @@ for (const f of ["importar.ts", "gerar-exemplo-importacao.ts", "empacotar.mjs"])
   rmSync(path.join(man, "scripts", f), { force: true });
 cpSync("src", path.join(man, "src"), { recursive: true });
 cpSync("tsconfig.json", path.join(man, "tsconfig.json"));
-cpSync("docker/pacote/manutencao.package.json", path.join(man, "package.json"));
-cpSync("docker/pacote/manutencao.package-lock.json", path.join(man, "package-lock.json"));
+cpSync(path.join(ferr, "docker/pacote/manutencao.package.json"), path.join(man, "package.json"));
+cpSync(
+  path.join(ferr, "docker/pacote/manutencao.package-lock.json"),
+  path.join(man, "package-lock.json"),
+);
 
 // As versões das ferramentas têm de coincidir com as da aplicação (mesmo package-lock).
 const lockRaiz = JSON.parse(readFileSync("package-lock.json", "utf8")).packages;
 const dependencias = JSON.parse(
-  readFileSync("docker/pacote/manutencao.package.json", "utf8"),
+  readFileSync(path.join(ferr, "docker/pacote/manutencao.package.json"), "utf8"),
 ).dependencies;
 for (const [dep, versao] of Object.entries(dependencias)) {
   const noLock = lockRaiz[`node_modules/${dep}`]?.version;
@@ -83,7 +88,7 @@ if (!existsSync(motor)) falha("falta o motor de migrações schema-engine-debian
 // 3) LEIA-ME
 writeFileSync(
   path.join(raiz, "LEIA-ME.txt"),
-  readFileSync("docker/pacote/LEIA-ME.txt", "utf8")
+  readFileSync(path.join(ferr, "docker/pacote/LEIA-ME.txt"), "utf8")
     .replaceAll("@COMMIT@", commit)
     .replaceAll("@NODE@", process.version),
 );

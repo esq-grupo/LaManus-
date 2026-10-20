@@ -18,6 +18,12 @@ on:
         required: false
         default: false
         type: boolean
+      permitir_publico:
+        description: "«sim» permite publicar a release num repositório PÚBLICO (temporário). Omissão: nao"
+        required: false
+        default: "nao"
+        type: choice
+        options: ["nao", "sim"]
 
 # Sem permissões por omissão; cada trabalho pede só o que precisa.
 permissions: {}
@@ -40,6 +46,7 @@ jobs:
       hash12: ${{ steps.r.outputs.hash12 }}
       ensaio: ${{ steps.r.outputs.ensaio }}
       tag: ${{ steps.r.outputs.tag }}
+      permitir_publico: ${{ steps.r.outputs.permitir_publico }}
     steps:
       - name: Resolver e validar o commit
         id: r
@@ -49,10 +56,13 @@ jobs:
           SHA_EVENTO: ${{ github.sha }}
           COMMIT_ENTRADA: ${{ inputs.commit }}
           ENSAIO_ENTRADA: ${{ inputs.ensaio }}
+          PUBLICO_ENTRADA: ${{ inputs.permitir_publico }}
         run: |
           set -euo pipefail
           ensaio=false
+          permitir_publico=nao # só a execução manual pode autorizar uma release pública; as tags nunca
           if [ "$EVENTO" = "workflow_dispatch" ]; then
+            [ "$PUBLICO_ENTRADA" = "sim" ] && permitir_publico=sim
             commit="$COMMIT_ENTRADA"
             [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::A entrada «commit» tem de ser o hash completo (40 caracteres hexadecimais minúsculos)."; exit 1; }
             tag="pacote-${commit:0:12}"
@@ -71,6 +81,7 @@ jobs:
           echo "hash12=${commit:0:12}" >> "$GITHUB_OUTPUT"
           echo "ensaio=$ensaio" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "permitir_publico=$permitir_publico" >> "$GITHUB_OUTPUT"
 
   verificar:
     needs: resolver
@@ -134,6 +145,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           # sem cache de npm: extracção e dependências sempre limpas
+      # O código da APLICAÇÃO vem do commit pedido; as ferramentas de empacotamento vêm do commit do próprio fluxo.
+      # (Assim pode empacotar-se um commit anterior à existência do script, sem alterar uma linha do código da aplicação.)
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.sha }}
+          path: ferramentas
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/empacotar.mjs
+            docker/pacote
+          sparse-checkout-cone-mode: false
       - name: Versões
         run: |
           node -v | tee /dev/stderr | grep -qx "v${NODE_VERSION}"
@@ -157,8 +179,9 @@ jobs:
         id: p
         env:
           COMMIT: ${{ needs.resolver.outputs.commit }}
+          FERRAMENTAS: ferramentas
         run: |
-          node scripts/empacotar.mjs
+          node ferramentas/scripts/empacotar.mjs
           f="lamanus-${COMMIT:0:12}-linux-x64.tar.gz"
           echo "ficheiro=$f" >> "$GITHUB_OUTPUT"
           echo "sha256=$(cut -d' ' -f1 "saida/$f.sha256")" >> "$GITHUB_OUTPUT"
@@ -212,17 +235,27 @@ jobs:
           set -euo pipefail
           test "$(sha256sum "saida/$F" | cut -d' ' -f1)" = "$SHA"
           test "$(cut -d' ' -f1 "saida/$F.sha256")" = "$SHA"
-      - name: Só publicar de forma definitiva se o repositório for PRIVADO
+      - name: Só publicar de forma definitiva se o repositório for PRIVADO (ou se a execução manual o autorizar)
+        id: g
         env:
           GH_TOKEN: ${{ github.token }}
           ENSAIO: ${{ needs.resolver.outputs.ensaio }}
+          EVENTO: ${{ github.event_name }}
+          PERMITIR: ${{ needs.resolver.outputs.permitir_publico }}
         run: |
           set -euo pipefail
           privado=$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)
+          echo "privado=$privado" >> "$GITHUB_OUTPUT"
           echo "Repositório privado: $privado"
-          if [ "$privado" != "true" ] && [ "$ENSAIO" != "true" ]; then
-            echo "::error::O repositório NÃO é privado: uma release seria pública. Nada foi publicado. Torne o repositório privado e repita."
-            exit 1
+          if [ "$privado" != "true" ]; then
+            if [ "$ENSAIO" = "true" ]; then
+              echo "Repositório público, mas é um ensaio: a release fica em rascunho."
+            elif [ "$EVENTO" = "workflow_dispatch" ] && [ "$PERMITIR" = "sim" ]; then
+              echo "::warning::Repositório PÚBLICO: release pública TEMPORÁRIA autorizada por permitir_publico=sim."
+            else
+              echo "::error::O repositório NÃO é privado: uma release seria pública. Nada foi publicado. Torne o repositório privado, ou use a execução manual com permitir_publico=sim (temporário)."
+              exit 1
+            fi
           fi
       - name: Criar a release
         env:
@@ -234,6 +267,9 @@ jobs:
           F: ${{ needs.compilar.outputs.ficheiro }}
           SHA: ${{ needs.compilar.outputs.sha256 }}
           ATESTACAO: ${{ needs.atestar.outputs.resultado }}
+          PRIVADO: ${{ steps.g.outputs.privado }}
+          PERMITIR: ${{ needs.resolver.outputs.permitir_publico }}
+          FERR_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
           tamanho=$(stat -c %s "saida/$F")
@@ -243,10 +279,17 @@ jobs:
             echo "- Commit: \`$COMMIT\`"
             echo "- Ficheiro: \`$F\` ($tamanho bytes)"
             echo "- SHA-256: \`$SHA\`"
+            echo "- Ferramentas de empacotamento: commit \`$FERR_COMMIT\`"
             echo "- Atestação de origem: $([ "$ATESTACAO" = "success" ] && echo "sim (\`gh attestation verify $F --repo $GITHUB_REPOSITORY\`)" || echo "não disponível neste repositório ($ATESTACAO)")"
             echo
             echo "Confirme depois de descarregar: \`sha256sum -c $F.sha256\`."
             [ "$ENSAIO" = "true" ] && echo && echo "**ENSAIO — não usar em produção.**"
+            if [ "$PRIVADO" != "true" ] && [ "$PERMITIR" = "sim" ]; then
+              echo
+              echo "**release pública, temporária**"
+              echo
+              echo "O repositório é público; esta release é visível a todos. Descarregue o pacote e apague a release (ou torne o repositório privado) logo a seguir."
+            fi
           } > notas.md
           flags=()
           if [ "$ENSAIO" = "true" ]; then flags+=(--draft --prerelease); fi
