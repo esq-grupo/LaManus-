@@ -4,6 +4,9 @@ Actualizado: 2026-10-17
 
 > Regra permanente: perguntas ao PO = 3 opções, recomendada primeiro (`docs/REGRAS-COMUNICACAO.md`).
 
+## Modelo de trabalho (desde 2026-10-20)
+Manus produz (ramos `manus/*`, só Pull requests), Claude revê e aprova por escrito (comentário «APROVADO — commit <hash>»), o PO dá o OK e outro Claude Code publica. Ver `docs/PROTOCOLO-MANUS.md`.
+
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
