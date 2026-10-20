@@ -21,9 +21,14 @@ export const limparFixture = (fx: FixtureAvaliacao) =>
 
 export const limparFinanceiro = () => void correr("financeiro-limpar");
 
-import type { FixturePortais } from "./fixture-cli";
+import type { FixturePortais, FixtureUtilizadoresPaginacao } from "./fixture-cli";
 export const criarPortais = (senha: string) => correr("portais-criar", senha) as FixturePortais;
 export const limparPortais = (fx: FixturePortais) =>
   void correr("portais-limpar", JSON.stringify(fx));
+
+export const criarUtilizadoresPaginacao = (senha: string) =>
+  correr("utilizadores-paginacao-criar", senha) as FixtureUtilizadoresPaginacao;
+export const limparUtilizadoresPaginacao = (fx: FixtureUtilizadoresPaginacao) =>
+  void correr("utilizadores-paginacao-limpar", JSON.stringify(fx));
 
 export const limparPedidos = () => void correr("pedidos-limpar");

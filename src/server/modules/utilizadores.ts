@@ -47,9 +47,14 @@ export const criarUtilizadorSchema = z.object({
 const incluirPapeis = { papeis: { include: { role: true } } } as const;
 
 export const LIMITE_LISTA_UTILIZADORES = 50;
+const LIMITE_MAXIMO_LISTA_UTILIZADORES = 200;
+
+export function limparPesquisaUtilizadores(q?: string) {
+  return (q ?? "").trim().slice(0, 80);
+}
 
 function filtroUtilizadores(q?: string) {
-  const t = (q ?? "").trim().slice(0, 80);
+  const t = limparPesquisaUtilizadores(q);
   return t
     ? {
         OR: [
@@ -60,26 +65,80 @@ function filtroUtilizadores(q?: string) {
     : {};
 }
 
-/** Lista limitada (a escola terá milhares de contas de estudantes/encarregados): pesquisa por nome ou email. */
-export async function listarUtilizadores(
-  actor: Principal,
-  filtro: { q?: string; limite?: number } = {},
-) {
-  exigir(actor, "utilizadores:ver");
-  const users = await db.user.findMany({
-    where: filtroUtilizadores(filtro.q),
-    orderBy: [{ nome: "asc" }, { email: "asc" }],
-    take: Math.min(filtro.limite ?? LIMITE_LISTA_UTILIZADORES, 200),
-    include: incluirPapeis,
-  });
-  return users.map((u) => ({
+function limiteUtilizadores(limite?: number) {
+  return Math.max(
+    1,
+    Math.min(limite ?? LIMITE_LISTA_UTILIZADORES, LIMITE_MAXIMO_LISTA_UTILIZADORES),
+  );
+}
+
+function paginaUtilizadores(pagina?: string) {
+  if (typeof pagina !== "string" || !/^\d{1,6}$/.test(pagina)) return 1;
+  const n = Number(pagina);
+  return n >= 1 ? n : 1;
+}
+
+function apresentarUtilizador(u: {
+  id: string;
+  nome: string;
+  email: string;
+  estado: "ACTIVO" | "BLOQUEADO" | "DESACTIVADO";
+  ultimoLogin: Date | null;
+  papeis: { role: { codigo: string } }[];
+}) {
+  return {
     id: u.id,
     nome: u.nome,
     email: u.email,
     estado: u.estado,
     ultimoLogin: u.ultimoLogin,
     papeis: u.papeis.map((ur) => ur.role.codigo).filter(ehPapel) as Papel[],
-  }));
+  };
+}
+
+/** Lista limitada (a escola terá milhares de contas de estudantes/encarregados): pesquisa por nome ou email. */
+export async function listarUtilizadores(
+  actor: Principal,
+  filtro: { q?: string; limite?: number; pagina?: string } = {},
+) {
+  exigir(actor, "utilizadores:ver");
+  if (filtro.pagina !== undefined) return (await paginarUtilizadores(actor, filtro)).itens;
+  const users = await db.user.findMany({
+    where: filtroUtilizadores(filtro.q),
+    orderBy: [{ nome: "asc" }, { email: "asc" }, { id: "asc" }],
+    take: limiteUtilizadores(filtro.limite),
+    include: incluirPapeis,
+  });
+  return users.map(apresentarUtilizador);
+}
+
+export async function paginarUtilizadores(
+  actor: Principal,
+  filtro: { q?: string; limite?: number; pagina?: string } = {},
+) {
+  exigir(actor, "utilizadores:ver");
+  const where = filtroUtilizadores(filtro.q);
+  const limite = limiteUtilizadores(filtro.limite);
+  const total = await db.user.count({ where });
+  const paginas = Math.max(1, Math.ceil(total / limite));
+  const pagina = Math.min(paginaUtilizadores(filtro.pagina), paginas);
+  const skip = (pagina - 1) * limite;
+  const users = await db.user.findMany({
+    where,
+    orderBy: [{ nome: "asc" }, { email: "asc" }, { id: "asc" }],
+    skip,
+    take: limite,
+    include: incluirPapeis,
+  });
+  const itens = users.map(apresentarUtilizador);
+  return {
+    itens,
+    total,
+    pagina,
+    paginas,
+    de: total === 0 ? 0 : skip + 1,
+    ate: total === 0 ? 0 : skip + itens.length,
+  };
 }
 
 export async function contarUtilizadores(actor: Principal, q?: string) {
