@@ -1,5 +1,6 @@
 // Executado com `tsx` num processo à parte (o Playwright compila para CommonJS e não consegue carregar o cliente Prisma).
 import "dotenv/config";
+import { randomUUID } from "node:crypto";
 import {
   criarFixtureAvaliacao,
   limparFixtureAvaliacao,
@@ -17,6 +18,46 @@ export interface FixturePortais {
   alheio: { id: string; nome: string };
   userId: string;
   encarregadoId: string;
+}
+
+export interface FixtureUtilizadoresPaginacao {
+  q: string;
+  ids: string[];
+}
+
+async function criarUtilizadoresPaginacao(senha: string): Promise<FixtureUtilizadoresPaginacao> {
+  const admin = criarClienteAdmin();
+  try {
+    const sufixo = randomUUID().slice(0, 8);
+    const q = `E2E-PAG-${sufixo}`;
+    const role = await admin.role.findUniqueOrThrow({ where: { codigo: "DOCENTE" } });
+    const passwordHash = await hashPassword(senha);
+    const ids: string[] = [];
+    for (let i = 1; i <= 51; i++) {
+      const user = await admin.user.create({
+        data: {
+          email: `e2e-pag-${sufixo}-${i}@exemplo.lamanu.test`,
+          nome: `${q}-${i}`,
+          passwordHash,
+          papeis: { create: [{ roleId: role.id }] },
+        },
+      });
+      ids.push(user.id);
+    }
+    return { q, ids };
+  } finally {
+    await admin.$disconnect();
+  }
+}
+
+async function limparUtilizadoresPaginacao(fx: FixtureUtilizadoresPaginacao) {
+  const admin = criarClienteAdmin();
+  try {
+    await admin.session.deleteMany({ where: { userId: { in: fx.ids } } });
+    await admin.user.deleteMany({ where: { id: { in: fx.ids } } });
+  } finally {
+    await admin.$disconnect();
+  }
 }
 
 /** Encarregado com 2 educandos verificados, 1 por verificar e 1 aluno de OUTRA família (para os testes de acesso cruzado). */
@@ -140,6 +181,13 @@ async function main() {
     console.log(`JSON:${JSON.stringify(await criarPortais(argumento ?? ""))}`);
   } else if (comando === "portais-limpar") {
     await limparPortais(JSON.parse(argumento ?? "{}") as FixturePortais);
+    console.log("JSON:{}");
+  } else if (comando === "utilizadores-paginacao-criar") {
+    console.log(`JSON:${JSON.stringify(await criarUtilizadoresPaginacao(argumento ?? ""))}`);
+  } else if (comando === "utilizadores-paginacao-limpar") {
+    await limparUtilizadoresPaginacao(
+      JSON.parse(argumento ?? "{}") as FixtureUtilizadoresPaginacao,
+    );
     console.log("JSON:{}");
   } else if (comando === "pedidos-limpar") {
     const admin = criarClienteAdmin();

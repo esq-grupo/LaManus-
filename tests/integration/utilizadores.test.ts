@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { definirMailer } from "@/server/auth/mailer";
 import { iniciarSessao } from "@/server/auth/login";
@@ -8,6 +9,7 @@ import {
   criarUtilizador,
   definirEstado,
   listarUtilizadores,
+  paginarUtilizadores,
   contarUtilizadores,
   revogarSessoesDe,
 } from "@/server/modules/utilizadores";
@@ -116,6 +118,59 @@ describe("lista de utilizadores — limitada e pesquisável", () => {
     await expect(contarUtilizadores(await principal(["DOCENTE"]))).rejects.toBeInstanceOf(
       ErroAutorizacao,
     );
+    await expect(
+      paginarUtilizadores(await principal(["DOCENTE"]), { pagina: "1" }),
+    ).rejects.toBeInstanceOf(ErroAutorizacao);
+  });
+
+  it("pagina sem repetir nem omitir e estabiliza a fronteira por nome igual", async () => {
+    const admin = await principal(["ADMIN_TECNICO"]);
+    const sufixo = randomUUID().slice(0, 8);
+    const nome = `Fronteira-${sufixo}`;
+    const contas = [
+      `fronteira-${sufixo}-a@teste.lamanu.test`,
+      `fronteira-${sufixo}-b@teste.lamanu.test`,
+    ];
+    const ids: string[] = [];
+
+    try {
+      for (const email of [...contas].reverse()) {
+        const id = await criarUtilizador(
+          admin,
+          { nome, email, papeis: ["DOCENTE"] },
+          await ctx(admin),
+        );
+        ids.push(id);
+        criados.push(id);
+      }
+
+      const filtro = { q: nome, limite: 1 };
+      const pagina1 = await paginarUtilizadores(admin, { ...filtro, pagina: "1" });
+      const pagina2 = await paginarUtilizadores(admin, { ...filtro, pagina: "2" });
+      const pagina3 = await paginarUtilizadores(admin, { ...filtro, pagina: "99" });
+
+      expect(pagina1.total).toBe(2);
+      expect(pagina1.paginas).toBe(2);
+      expect(pagina1.pagina).toBe(1);
+      expect(pagina1.de).toBe(1);
+      expect(pagina1.ate).toBe(1);
+      expect(pagina2.pagina).toBe(2);
+      expect(pagina2.de).toBe(2);
+      expect(pagina2.ate).toBe(2);
+      expect(pagina3.pagina).toBe(2);
+      expect(pagina3.itens).toEqual(pagina2.itens);
+
+      const encontrados = [...pagina1.itens, ...pagina2.itens];
+      expect(encontrados.map((u) => u.id).sort()).toEqual(ids.sort());
+      expect(new Set(encontrados.map((u) => u.id)).size).toBe(2);
+      expect(encontrados.map((u) => u.email)).toEqual(contas);
+
+      for (const pagina of ["texto", "0", "-1", "1.5", "1e309", "1234567"]) {
+        expect((await paginarUtilizadores(admin, { ...filtro, pagina })).pagina).toBe(1);
+      }
+    } finally {
+      for (const id of ids) await limparUser(id);
+    }
   });
 });
 
