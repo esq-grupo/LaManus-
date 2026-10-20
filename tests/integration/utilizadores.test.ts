@@ -134,7 +134,7 @@ describe("lista de utilizadores — limitada e pesquisável", () => {
     const ids: string[] = [];
 
     try {
-      for (const email of contas) {
+      for (const email of [...contas].reverse()) {
         const id = await criarUtilizador(
           admin,
           { nome, email, papeis: ["DOCENTE"] },
