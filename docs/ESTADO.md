@@ -10,6 +10,8 @@ Manus produz (ramos `manus/*`, só Pull requests), Claude revê e aprova por esc
 ## Tarefas abertas (Manus)
 - **TAREFA-1** — paginação da lista de utilizadores (`docs/tarefas/TAREFA-1.md`). **FECHADA**: aprovada (commit 5ec781e263b62bec65caf153c845af3ad059f461), fundida pelo Revisor por delegação do PO no commit d7cffa50461650c2b49a8236ed879904fec7839f (árvore idêntica à aprovada; CI verde, execução 39513974309). Revisão do Codex dispensada; o Codex deixa de ser usado (decisão do PO, 2026-10-20). Falta publicar (pacote `lamanus-d7cffa504616-linux-x64.tar.gz`).
 
+- **TAREFA-2** — aviso de lint e estado vazio dos selectores (`docs/tarefas/TAREFA-2.md`). Estado: aberta, a aguardar o Manus (zona verde).
+
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
