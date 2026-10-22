@@ -8,9 +8,11 @@ Em vigor desde 2026-10-20 (decisão do PO). Este documento é a ordem de serviç
 |---|---|---|---|
 | **PO (dono)** | Pessoa | Decide negócio, autoriza, dá o «OK» final, funde Pull requests, controla acessos | — |
 | **Executor** | Manus | Escrever código, testes e documentação em **ramos próprios**; abrir Pull requests; responder a revisões | Fundir, aprovar, publicar, tocar em servidores, usar dados reais, criar/guardar segredos, alterar as zonas protegidas sem aprovação prévia (§6) |
-| **Revisor** | Claude (esta conversa) | Analisar cada Pull request, correr as verificações, aprovar ou recusar por escrito, manter este protocolo | Fundir, publicar, aceitar trabalho sem evidência |
-| **Revisor independente** | Codex | Revisão separada ao fecho de cada entrega (veredicto APROVADO / COM RESSALVAS / REPROVADO) | — |
+| **Revisor** | Claude (esta conversa) | Analisar cada Pull request, correr as verificações, aprovar ou recusar por escrito, manter este protocolo; **fundir uma Pull request já APROVADA, com CI verde e OK do PO, quando o PO o delegar por escrito** (feito na TAREFA-1) | Fundir sem as três condições, publicar, aceitar trabalho sem evidência |
+| **Revisão final de entrega** | Claude (Revisor). Desde 2026-10-20 o Codex deixou de ser usado por decisão do PO | Revisão separada ao fecho de cada entrega, sobre uma **extracção limpa** do commit, com todas as verificações e lista adversarial (veredicto APROVADO / COM RESSALVAS / REPROVADO) | Fingir independência: o Revisor escreveu parte do código revisto e deve dizê-lo |
 | **Publicador** | Outro Claude Code, com acesso ao servidor | Publicar **só** um commit aprovado, com CI verde e OK do PO | Publicar o que não tenha as três condições; alterar código; usar o pacote de outro commit |
+
+Fusão: antes de fundir o Revisor confirma que o commit fundido tem **a mesma árvore** (`git rev-parse <commit>^{tree}`) que o aprovado; por isso usa-se «Create a merge commit», nunca rebase nem squash.
 
 Cadeia obrigatória para qualquer alteração: **Manus produz → CI verde → Claude aprova (comentário de aprovação, §7) → PO dá OK → Publicador publica.** Nenhum elo se salta.
 
@@ -105,7 +107,7 @@ Zona: verde|amarela|vermelha · Ressalvas: nenhuma | <lista>
 Próximo passo: OK do PO → publicação
 ```
 
-Ou **RECUSADO — commit <hash>** com a lista numerada do que corrigir. **A aprovação vale só para esse hash**: qualquer commit novo na Pull request anula-a e exige nova aprovação. A aprovação do Claude não substitui a revisão do Codex no fecho de cada entrega nem o OK do PO.
+Ou **RECUSADO — commit <hash>** com a lista numerada do que corrigir. **A aprovação vale só para esse hash**: qualquer commit novo na Pull request anula-a e exige nova aprovação. A aprovação por Pull request não substitui a revisão final de entrega nem o OK do PO. **Nota de independência:** como o Codex deixou de ser usado, a revisão final é do próprio Claude, que escreveu grande parte do código; o PO sabe que já não é uma revisão de terceiros.
 
 Limite honesto: o Revisor só garante o que correu e leu. Não vê o servidor, nem dados reais, nem dispositivos reais.
 
