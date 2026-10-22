@@ -7,6 +7,9 @@ Actualizado: 2026-10-17
 ## Modelo de trabalho (desde 2026-10-20)
 Manus produz (ramos `manus/*`, só Pull requests), Claude revê e aprova por escrito (comentário «APROVADO — commit <hash>»), o PO dá o OK e outro Claude Code publica. Ver `docs/PROTOCOLO-MANUS.md`.
 
+## Incidente de CI (2026-10-22)
+O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configuration parameter "transaction_timeout"`) porque o `pg_dump` por omissão do corredor do GitHub é mais novo que o PostgreSQL 16 do serviço. Correcção: `scripts/pg-cliente.sh` (usa o cliente do mesmo major do servidor e **recusa** um mais novo), usado por `backup.sh` e `restaurar.sh`; o CI instala o `postgresql-client-16`. Vale também para o servidor da escola: o `pg_dump` tem de ser do major do servidor.
+
 ## Tarefas abertas (Manus)
 - **TAREFA-1** — paginação da lista de utilizadores (`docs/tarefas/TAREFA-1.md`). **FECHADA**: aprovada (commit 5ec781e263b62bec65caf153c845af3ad059f461), fundida pelo Revisor por delegação do PO no commit d7cffa50461650c2b49a8236ed879904fec7839f (árvore idêntica à aprovada; CI verde, execução 39513974309). Revisão do Codex dispensada; o Codex deixa de ser usado (decisão do PO, 2026-10-20). Falta publicar (pacote `lamanus-d7cffa504616-linux-x64.tar.gz`).
 

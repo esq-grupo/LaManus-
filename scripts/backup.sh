@@ -10,13 +10,15 @@ RETENCAO="${BACKUP_RETENCAO:-14}"
 [ -r "$BACKUP_PASSPHRASE_FILE" ] || { echo "ERRO: não consigo ler $BACKUP_PASSPHRASE_FILE" >&2; exit 1; }
 [ "$(stat -c %a "$BACKUP_PASSPHRASE_FILE")" = "600" ] || { echo "ERRO: $BACKUP_PASSPHRASE_FILE deve ter permissões 600" >&2; exit 1; }
 URL="${ADMIN_DATABASE_URL%%\?*}" # pg_dump não aceita ?schema=…
+# shellcheck source=pg-cliente.sh
+source "$(dirname "${BASH_SOURCE[0]}")/pg-cliente.sh" "$URL"
 mkdir -p "$BACKUP_DIR"; chmod 700 "$BACKUP_DIR"
 CARIMBO="$(date -u +%Y%m%dT%H%M%SZ)"
 DESTINO="$BACKUP_DIR/lamanus-$CARIMBO.dump.gpg"
 TMP="$(mktemp "$BACKUP_DIR/.tmp.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 # Formato custom (-Fc): permite restauro selectivo; sem donos/privilégios (são reaplicados por db:deploy).
-pg_dump --format=custom --no-owner --no-privileges "$URL" | gpg --batch --yes --quiet --symmetric --cipher-algo AES256 --passphrase-file "$BACKUP_PASSPHRASE_FILE" --pinentry-mode loopback -o "$TMP"
+"$PG_DUMP" --format=custom --no-owner --no-privileges "$URL" | gpg --batch --yes --quiet --symmetric --cipher-algo AES256 --passphrase-file "$BACKUP_PASSPHRASE_FILE" --pinentry-mode loopback -o "$TMP"
 mv "$TMP" "$DESTINO"; trap - EXIT
 chmod 600 "$DESTINO"
 ( cd "$BACKUP_DIR" && sha256sum "$(basename "$DESTINO")" > "$(basename "$DESTINO").sha256" )
