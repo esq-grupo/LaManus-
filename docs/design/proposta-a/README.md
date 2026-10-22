@@ -23,11 +23,11 @@
 
 ## Acessibilidade e contraste
 
-A verificação indicada é o **WebAIM Contrast Checker**, usando os pares principais como texto normal:
+A verificação foi feita com um script local em Python que implementa a fórmula de contraste WCAG 2; os mesmos pares podem ser confirmados no **WebAIM Contrast Checker**. Os resultados principais são:
 
-- `#16324f` sobre `#f5faf8`: contraste forte para corpo de texto.
-- `#ffffff` sobre `#0f766e`: contraste de controlo primário em conformidade AA.
-- `#ffffff` sobre `#115e59`: contraste de controlo primário escuro em conformidade AA.
+- `#16324f` sobre `#f5faf8`: `12,42:1`, corpo de texto.
+- `#ffffff` sobre `#0f766e`: `5,47:1`, controlo primário em conformidade AA.
+- `#ffffff` sobre `#115e59`: `7,58:1`, controlo primário escuro em conformidade AA.
 - `#ffffff` sobre `#c2410c` não é usado para texto normal; o coral aparece como texto sobre fundo claro ou como detalhe.
 
 As páginas incluem `lang="pt-PT"`, headings sem saltos, foco visível, ligação para saltar ao conteúdo, labels explícitos, SVG inline e respeito por `prefers-reduced-motion`. Os alvos principais têm pelo menos 44 px.

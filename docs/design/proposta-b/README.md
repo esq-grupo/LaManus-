@@ -24,13 +24,13 @@
 
 ## Acessibilidade e contraste
 
-A verificação indicada é o **WebAIM Contrast Checker**, usando os pares principais como texto normal:
+A verificação foi feita com um script local em Python que implementa a fórmula de contraste WCAG 2; os mesmos pares podem ser confirmados no **WebAIM Contrast Checker**. Os resultados principais são:
 
-- `#f8fafc` sobre `#0b1220`: contraste muito elevado para texto normal.
-- `#f8fafc` sobre `#17253a`: contraste elevado para texto normal.
-- `#2dd4bf` sobre `#0b1220`: contraste elevado para links e acções.
-- `#818cf8` sobre `#0b1220`: contraste adequado para detalhes e links secundários.
-- `#a9b8ca` é usado em superfícies escuras com contraste validado para texto secundário; quando a informação é essencial, usa-se `#f8fafc`.
+- `#f8fafc` sobre `#0b1220`: `17,89:1`, texto normal.
+- `#f8fafc` sobre `#17253a`: `14,73:1`, texto normal.
+- `#2dd4bf` sobre `#0b1220`: `10,06:1`, links e acções.
+- `#818cf8` sobre `#0b1220`: `6,28:1`, detalhes e links secundários.
+- `#a9b8ca` sobre `#0b1220`: `9,27:1`, texto secundário.
 
 As páginas incluem `lang="pt-PT"`, headings sem saltos, foco visível amarelo, ligação para saltar ao conteúdo, labels explícitos, SVG/ícones inline e respeito por `prefers-reduced-motion`. Os alvos principais têm pelo menos 44 px.
 
