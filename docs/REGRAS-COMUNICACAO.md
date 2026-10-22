@@ -10,6 +10,8 @@ Definidas pelo PO em 2026-10-13. Valem para todas as sessões, entregas e agente
 6. Se algo depender de uma acção do PO, dar instruções passo a passo muito simples.
 7. Nunca assumir uma resposta que o PO não deu: sem resposta, a pergunta continua em aberto.
 
+8. **Toda a resposta termina com o próximo passo concreto para o PO (instruções simples, passo a passo) ou com uma pergunta de 3 opções.** Nunca terminar só com um comentário ou um resumo (regra acrescentada pelo PO em 2026-10-22).
+
 Formato:
 > **Pergunta?**
 > 1. *(Recomendado)* … — porquê.
