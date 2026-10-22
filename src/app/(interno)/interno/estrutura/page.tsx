@@ -79,7 +79,12 @@ export default async function Estrutura() {
             </FormAcao>
             <FormAcao acao={acaoPeriodo} rotulo="Criar período" className={caixa}>
               <h3 className="font-medium">Novo período</h3>
-              <Escolha nome="anoLectivoId" rotulo="Ano lectivo" opcoes={optAnos} />
+              <Escolha
+                nome="anoLectivoId"
+                rotulo="Ano lectivo"
+                opcoes={optAnos}
+                semOpcoes="Ainda não há anos lectivos abertos: crie primeiro um ano lectivo."
+              />
               <Campo nome="ordem" rotulo="Ordem (1, 2, 3…)" tipo="number" obrigatorio />
               <Campo nome="nome" rotulo="Nome (ex.: 1.º trimestre)" obrigatorio />
               <Campo nome="inicio" rotulo="Início" tipo="date" obrigatorio />
@@ -130,7 +135,12 @@ export default async function Estrutura() {
             </FormAcao>
             <FormAcao acao={acaoTurma} rotulo="Criar turma" className={caixa}>
               <h3 className="font-medium">Nova turma</h3>
-              <Escolha nome="anoLectivoId" rotulo="Ano lectivo" opcoes={optAnos} />
+              <Escolha
+                nome="anoLectivoId"
+                rotulo="Ano lectivo"
+                opcoes={optAnos}
+                semOpcoes="Ainda não há anos lectivos abertos: crie primeiro um ano lectivo."
+              />
               <Escolha nome="classeId" rotulo="Classe" opcoes={optClasses} />
               <Campo nome="nome" rotulo="Nome (ex.: A)" obrigatorio />
               <Escolha

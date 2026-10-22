@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 
 export interface Resultado {
   erro?: string;
@@ -91,20 +91,26 @@ export function Escolha({
   rotulo,
   opcoes,
   vazio,
+  semOpcoes,
   obrigatorio = true,
 }: {
   nome: string;
   rotulo: string;
   opcoes: { valor: string; texto: string }[];
   vazio?: string;
+  semOpcoes?: string;
   obrigatorio?: boolean;
 }) {
+  const idSemOpcoes = `ajuda-${nome}-${useId().replace(/:/g, "")}`;
+  const mostraSemOpcoes = opcoes.length === 0 && semOpcoes !== undefined;
+
   return (
     <label className="block text-sm">
       {rotulo}
       <select
         name={nome}
         required={obrigatorio}
+        aria-describedby={mostraSemOpcoes ? idSemOpcoes : undefined}
         className="mt-1 w-full rounded border bg-white p-2"
       >
         {vazio !== undefined && <option value="">{vazio}</option>}
@@ -114,6 +120,11 @@ export function Escolha({
           </option>
         ))}
       </select>
+      {mostraSemOpcoes && (
+        <p id={idSemOpcoes} className="text-sm text-slate-600">
+          {semOpcoes}
+        </p>
+      )}
     </label>
   );
 }

@@ -13,7 +13,7 @@ import {
 import { gerarDeclaracaoPdf } from "@/server/modules/declaracao-pdf";
 import { listarAvisos } from "@/server/modules/notificacoes";
 import { ErroAutorizacao, ErroValidacao } from "@/server/erros";
-import { PAPEIS, type Papel } from "@/server/authz";
+import { PAPEIS } from "@/server/authz";
 
 const c = new Cenario();
 beforeAll(prepararBd);
