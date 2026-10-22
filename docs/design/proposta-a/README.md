@@ -21,6 +21,10 @@
 - Raios: `12px` para controlos, `16px` para cartões, `24–28px` para painéis principais.
 - Sombras: suaves, azuladas e reservadas a painéis/cartões; sem efeitos pesados.
 
+## Método de medição
+
+As medições foram feitas localmente com **Chromium 154 headless** e Playwright, abrindo cada HTML por `file://` em viewports de **390×844** e **1280×900**. A rolagem foi verificada comparando `document.documentElement.scrollWidth` com `clientWidth`; o critério de passagem é igualdade, sem rolagem horizontal da página. Os alvos foram enumerados no DOM (`a`, `button` e caixas de selecção) e medidos com `getBoundingClientRect()`; cada largura e altura tem de ser pelo menos **44 px**. O contraste foi calculado por um script Python local com a fórmula de luminância relativa WCAG 2; o critério é **≥ 4,5:1** para texto normal, **≥ 3:1** para texto grande e controlos/bordas.
+
 ## Acessibilidade e contraste
 
 A verificação foi feita com um script local em Python que implementa a fórmula de contraste WCAG 2; os mesmos pares podem ser confirmados no **WebAIM Contrast Checker**. Os resultados principais são:
