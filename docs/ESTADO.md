@@ -15,6 +15,9 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 
 - **TAREFA-2** — aviso de lint e estado vazio dos selectores (`docs/tarefas/TAREFA-2.md`). Estado: aberta, a aguardar o Manus (zona verde).
 
+- **TAREFA-3** — página de auditoria só de leitura (`docs/tarefas/TAREFA-3.md`). Estado: escrita; a aguardar nota de desenho do Manus (zona amarela).
+- Perguntas à escola sobre âmbito do piloto: `docs/perguntas-escola.md`.
+
 ## Posição actual
 - **Entrega 0:** FECHADA (Codex APROVADO COM RESSALVAS na revisão 2, ressalvas corrigidas; OK do PO em 2026-10-13).
 - **Entrega A:** FECHADA (Codex APROVADO na revisão 3 + OK do PO em 2026-10-13).
