@@ -21,7 +21,7 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 - **TAREFA-3** — página de auditoria só de leitura (`docs/tarefas/TAREFA-3.md`). Estado: escrita; a aguardar nota de desenho do Manus (zona amarela).
 - Perguntas à escola sobre âmbito do piloto: `docs/perguntas-escola.md`.
 
-- **TAREFA-4** — duas propostas de desenho «premium» (maquetas HTML, `docs/tarefas/TAREFA-4.md`). Estado: escrita; a aguardar o Manus (zona verde).
+- **TAREFA-4** — duas propostas de desenho «premium» (maquetas HTML, `docs/tarefas/TAREFA-4.md`). Estado: maquetas concluídas no ramo `manus/TAREFA-4-propostas-desenho`, a aguardar Pull request e revisão (zona verde).
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
 ## Posição actual
