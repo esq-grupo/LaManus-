@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --ui-fundo: #f8fafc;
+  --ui-superficie: #ffffff;
+  --ui-texto: #0f172a;
+  --ui-texto-suave: #475569;
+  --ui-primaria: #1e293b;
+  --ui-primaria-texto: #ffffff;
+  --ui-borda: #cbd5e1;
+  --ui-perigo: #b91c1c;
+  --ui-sucesso: #15803d;
+  --ui-aviso: #92400e;
+  --ui-informacao: #1d4ed8;
+  --ui-foco: #b45309;
+  --ui-raio-sm: 0.375rem;
+  --ui-raio-md: 0.75rem;
+  --ui-raio-lg: 1rem;
+  --ui-raio-pill: 9999px;
+  --ui-sombra-subtil: 0 1px 2px 0 rgb(15 23 42 / 0.08);
+  --ui-sombra-card: 0 4px 12px 0 rgb(15 23 42 / 0.1);
+  --ui-espaco-1: 0.25rem;
+  --ui-espaco-2: 0.5rem;
+  --ui-espaco-3: 0.75rem;
+  --ui-espaco-4: 1rem;
+  --ui-espaco-6: 1.5rem;
+  --ui-espaco-8: 2rem;
+  --ui-tamanho-xs: 0.75rem;
+  --ui-tamanho-sm: 0.875rem;
+  --ui-tamanho-base: 1rem;
+  --ui-tamanho-lg: 1.125rem;
+  --ui-tamanho-xl: 1.25rem;
+  --ui-tamanho-2xl: 1.5rem;
+}
+
+@theme inline {
+  --color-fundo: var(--ui-fundo);
+  --color-superficie: var(--ui-superficie);
+  --color-texto: var(--ui-texto);
+  --color-texto-suave: var(--ui-texto-suave);
+  --color-primaria: var(--ui-primaria);
+  --color-primaria-texto: var(--ui-primaria-texto);
+  --color-borda: var(--ui-borda);
+  --color-perigo: var(--ui-perigo);
+  --color-sucesso: var(--ui-sucesso);
+  --color-aviso: var(--ui-aviso);
+  --color-informacao: var(--ui-informacao);
+  --color-foco: var(--ui-foco);
+  --radius-raio-sm: var(--ui-raio-sm);
+  --radius-raio-md: var(--ui-raio-md);
+  --radius-raio-lg: var(--ui-raio-lg);
+  --radius-raio-pill: var(--ui-raio-pill);
+  --shadow-sombra-subtil: var(--ui-sombra-subtil);
+  --shadow-sombra-card: var(--ui-sombra-card);
+  --spacing-espaco-1: var(--ui-espaco-1);
+  --spacing-espaco-2: var(--ui-espaco-2);
+  --spacing-espaco-3: var(--ui-espaco-3);
+  --spacing-espaco-4: var(--ui-espaco-4);
+  --spacing-espaco-6: var(--ui-espaco-6);
+  --spacing-espaco-8: var(--ui-espaco-8);
+  --text-tamanho-xs: var(--ui-tamanho-xs);
+  --text-tamanho-sm: var(--ui-tamanho-sm);
+  --text-tamanho-base: var(--ui-tamanho-base);
+  --text-tamanho-lg: var(--ui-tamanho-lg);
+  --text-tamanho-xl: var(--ui-tamanho-xl);
+  --text-tamanho-2xl: var(--ui-tamanho-2xl);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--ui-foco);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+}
