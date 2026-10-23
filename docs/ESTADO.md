@@ -23,10 +23,11 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 
 - **TAREFA-4** — duas propostas de desenho «premium» (maquetas HTML, `docs/tarefas/TAREFA-4.md`). Estado: **fechada**, fundida (aprovado d90456ea65ea756d826ea86a8bb3d99a0626608a). À espera da escolha A/B do cliente.
 - **TAREFA-5** — correcções do PR n.º 4 (Parte A) e base do sistema de desenho (Parte B): **fechada**, fundida (aprovado a63c0ef2f2fb0b326bdb46785105f2666c82ef06).
-- **TAREFA-6** — aplicar a proposta A (escolhida pelo cliente) por ondas 6a–6e (`docs/tarefas/TAREFA-6.md`). Estado: **pode ser enviada ao Manus** (TAREFA-5 fechada); arranca pela onda 6a.
+- **TAREFA-6** — aplicar a proposta A por ondas 6a–6e (`docs/tarefas/TAREFA-6.md`). Estado: **onda 6a fechada**, fundida (aprovado dd6c0e949b2c287ed1c71d7c6fd73fe4a942d98c); as ondas 6b–6e aguardam decisão (ver pivô abaixo).
 - Mapa do painel da escola × plataforma e 3 fases: `docs/MAPA-PAINEL-ESCOLA.md` (a levar ao cliente; decisão do âmbito pelo PO).
 - Respostas do cliente (2026-10-23): `docs/DECISOES-CLIENTE-2026-10-23.md` (assiduidade, comunicados, calendário e boletins na fase 2; arquivo de documentos na fase 3; enfermagem por curso e ano com estágios avaliados por nota, a confirmar).
 - Mensagem formal ao técnico do cliente (estrutura dos ficheiros, confirmação escrita, 5 itens por esclarecer): `docs/comunicacao/mensagem-tecnico-cliente.md`. Estado: pronta para o PO enviar.
+- **Pivô (2026-10-23):** o cliente já tem app de gestão escolar; quer substituir o painel Excel da **qualidade/gestão documental**. Decisão do PO: **módulo «Qualidade» isolado dentro da La Manu**, âmbito mínimo (painel por secções, arquivo de documentos com versões, acesso por perfil). Zona vermelha (migração). Falta ADR e tarefa.
 - **TAREFA-7** — página pública da escola (`docs/tarefas/TAREFA-7.md`). Estado: **rascunho**; só segue para o Manus com a TAREFA-5 fechada e o conteúdo do cliente.
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
