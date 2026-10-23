@@ -23,6 +23,7 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 
 - **TAREFA-4** — duas propostas de desenho «premium» (maquetas HTML, `docs/tarefas/TAREFA-4.md`). Estado: **fechada**, fundida (aprovado d90456ea65ea756d826ea86a8bb3d99a0626608a). À espera da escolha A/B do cliente.
 - **TAREFA-5** — correcções do PR n.º 4 (Parte A, **fechada**) + base do sistema de desenho independente de A/B (Parte B) (`docs/tarefas/TAREFA-5.md`). Estado: nota de desenho da Parte B **aprovada** (2 condições: tokens semânticos com a paleta actual por omissão; sem activos externos); a aguardar o PR do Manus.
+- **TAREFA-7** — página pública da escola (`docs/tarefas/TAREFA-7.md`). Estado: **rascunho**; só segue para o Manus com a TAREFA-5 fechada e o conteúdo do cliente.
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
 ## Posição actual
