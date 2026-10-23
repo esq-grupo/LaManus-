@@ -9,6 +9,7 @@
   --ui-primaria: #1e293b;
   --ui-primaria-texto: #ffffff;
   --ui-borda: #cbd5e1;
+  --ui-borda-controlo: #64748b;
   --ui-perigo: #b91c1c;
   --ui-sucesso: #15803d;
   --ui-aviso: #92400e;
@@ -42,6 +43,7 @@
   --color-primaria: var(--ui-primaria);
   --color-primaria-texto: var(--ui-primaria-texto);
   --color-borda: var(--ui-borda);
+  --color-borda-controlo: var(--ui-borda-controlo);
   --color-perigo: var(--ui-perigo);
   --color-sucesso: var(--ui-sucesso);
   --color-aviso: var(--ui-aviso);

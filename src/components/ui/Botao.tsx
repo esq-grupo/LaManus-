@@ -10,7 +10,7 @@ type BotaoProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantes: Record<Variante, string> = {
   primario: "bg-primaria text-primaria-texto hover:opacity-90",
-  secundario: "border border-borda bg-superficie text-texto hover:bg-fundo",
+  secundario: "border border-borda-controlo bg-superficie text-texto hover:bg-fundo",
   perigo: "bg-perigo text-primaria-texto hover:opacity-90",
 };
 

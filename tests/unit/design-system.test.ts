@@ -47,7 +47,7 @@ describe("sistema de desenho — componentes", () => {
     expect(html).toContain('aria-busy="true"');
     expect(html).toContain("disabled");
     expect(perigo).toContain("bg-perigo");
-    expect(secundario).toContain("border-borda");
+    expect(secundario).toContain("border-borda-controlo");
     expect(html).toContain("min-h-11");
   });
 
@@ -80,6 +80,7 @@ describe("sistema de desenho — componentes", () => {
     expect(html).toContain("<span>Email</span>");
     expect(html).not.toMatch(/<label[^>]*>[\s\S]*<p/);
     expect(html).toContain('aria-invalid="true"');
+    expect(html).toContain("border-borda-controlo");
     expect(html).toContain(`id="${describedBy?.split(" ")[0]}"`);
     expect(html).toContain("Use o email institucional.");
     expect(html).toContain("Email inválido.");
@@ -122,6 +123,7 @@ describe("sistema de desenho — componentes", () => {
     expect(html).toContain('role="region"');
     expect(html).toContain('aria-label="Lista de estudantes"');
     expect(html).toContain("overflow-x-auto");
+    expect(html).toContain("border-borda-controlo");
     expect(html).toContain("focus-visible:ring-foco");
   });
 });
@@ -137,6 +139,7 @@ describe("sistema de desenho — tokens e regras", () => {
       "--color-primaria",
       "--color-primaria-texto",
       "--color-borda",
+      "--color-borda-controlo",
       "--color-perigo",
       "--color-sucesso",
       "--color-aviso",
@@ -168,6 +171,20 @@ describe("sistema de desenho — tokens e regras", () => {
     expect(primariaTexto).toBeDefined();
     expect(contrast(texto!, fundo!)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(primariaTexto!, primaria!)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("mantém contraste mínimo da borda de controlo sobre superfície e fundo", () => {
+    const value = (token: string) =>
+      globals.match(new RegExp(`${token}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+    const bordaControlo = value("--ui-borda-controlo");
+    const superficie = value("--ui-superficie");
+    const fundo = value("--ui-fundo");
+
+    expect(bordaControlo).toBeDefined();
+    expect(superficie).toBeDefined();
+    expect(fundo).toBeDefined();
+    expect(contrast(bordaControlo!, superficie!)).toBeGreaterThanOrEqual(3);
+    expect(contrast(bordaControlo!, fundo!)).toBeGreaterThanOrEqual(3);
   });
 
   it("não usa cores literais nos componentes UI", () => {

@@ -15,7 +15,7 @@ export function Campo({ id, rotulo, ajuda, erro, className, ...props }: CampoPro
   const describedBy =
     [ajuda ? ajudaId : null, erro ? erroId : null].filter(Boolean).join(" ") || undefined;
   const inputClasses = [
-    "min-h-11 w-full rounded-raio-md border border-borda bg-superficie px-3 py-2 text-texto shadow-sombra-subtil",
+    "min-h-11 w-full rounded-raio-md border border-borda-controlo bg-superficie px-3 py-2 text-texto shadow-sombra-subtil",
     "placeholder:text-texto-suave focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-foco",
     erro ? "border-perigo" : "",
     className,
