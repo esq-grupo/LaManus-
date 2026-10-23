@@ -28,7 +28,7 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 - Respostas do cliente (2026-10-23): `docs/DECISOES-CLIENTE-2026-10-23.md` (assiduidade, comunicados, calendário e boletins na fase 2; arquivo de documentos na fase 3; enfermagem por curso e ano com estágios avaliados por nota, a confirmar).
 - Mensagem formal ao técnico do cliente (estrutura dos ficheiros, confirmação escrita, 5 itens por esclarecer): `docs/comunicacao/mensagem-tecnico-cliente.md`. Estado: pronta para o PO enviar.
 - **Pivô (2026-10-23):** o cliente já tem app de gestão escolar; quer substituir o painel Excel da **qualidade/gestão documental**. Decisão do PO: **módulo «Qualidade» isolado dentro da La Manu**, âmbito mínimo (painel por secções, arquivo de documentos com versões, acesso por perfil). Zona vermelha (migração). Falta ADR e tarefa.
-- **TAREFA-8** — maqueta HTML do painel da Qualidade, desenho A (`docs/tarefas/TAREFA-8.md`). Estado: quatro páginas e README prontos no ramo `manus/TAREFA-8-maqueta-qualidade`, a aguardar medições finais, CI e revisão; não fundida. O cliente quer vê-la antes de qualquer código.
+- **TAREFA-8** — maqueta do painel da Qualidade, desenho A (`docs/tarefas/TAREFA-8.md`). Estado: **fechada**, fundida (aprovado 04a7ebd6b8e69775f3f2b2a2892ffc93db6ef73e); a mostrar ao cliente (71 módulos em 5 secções).
 - **TAREFA-7** — página pública da escola (`docs/tarefas/TAREFA-7.md`). Estado: **rascunho**; só segue para o Manus com a TAREFA-5 fechada e o conteúdo do cliente.
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
