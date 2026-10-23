@@ -26,6 +26,7 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 - **TAREFA-6** — aplicar a proposta A (escolhida pelo cliente) por ondas 6a–6e (`docs/tarefas/TAREFA-6.md`). Estado: **pode ser enviada ao Manus** (TAREFA-5 fechada); arranca pela onda 6a.
 - Mapa do painel da escola × plataforma e 3 fases: `docs/MAPA-PAINEL-ESCOLA.md` (a levar ao cliente; decisão do âmbito pelo PO).
 - Respostas do cliente (2026-10-23): `docs/DECISOES-CLIENTE-2026-10-23.md` (assiduidade, comunicados, calendário e boletins na fase 2; arquivo de documentos na fase 3; enfermagem por curso e ano com estágios avaliados por nota, a confirmar).
+- Mensagem formal ao técnico do cliente (estrutura dos ficheiros, confirmação escrita, 5 itens por esclarecer): `docs/comunicacao/mensagem-tecnico-cliente.md`. Estado: pronta para o PO enviar.
 - **TAREFA-7** — página pública da escola (`docs/tarefas/TAREFA-7.md`). Estado: **rascunho**; só segue para o Manus com a TAREFA-5 fechada e o conteúdo do cliente.
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
