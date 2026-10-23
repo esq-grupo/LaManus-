@@ -7,45 +7,51 @@ import { entrar } from "@/app/(auth)/acoes";
 export function FormularioLogin({ aviso }: { aviso?: string }) {
   const [estado, acao, pendente] = useActionState(entrar, undefined);
   return (
-    <form action={acao} className="space-y-3">
+    <form action={acao} className="grid gap-4">
       {aviso && (
-        <p role="status" className="rounded bg-green-50 p-2 text-sm text-green-800">
+        <p
+          role="status"
+          className="rounded-raio-md bg-sucesso text-primaria-texto px-3 py-3 text-sm"
+        >
           {aviso}
         </p>
       )}
-      <label className="block text-sm">
-        Email
+      <label className="text-texto grid gap-2 text-sm font-semibold">
+        <span>Email</span>
         <input
           name="email"
           type="email"
           autoComplete="username"
           required
-          className="mt-1 w-full rounded border p-2"
+          className="rounded-raio-md border-borda-controlo bg-superficie text-texto shadow-sombra-subtil focus:ring-foco min-h-12 w-full border px-3 focus:ring-4 focus:outline-none"
         />
       </label>
-      <label className="block text-sm">
-        Palavra-passe
+      <label className="text-texto grid gap-2 text-sm font-semibold">
+        <span>Palavra-passe</span>
         <input
           name="password"
           type="password"
           autoComplete="current-password"
           required
-          className="mt-1 w-full rounded border p-2"
+          className="rounded-raio-md border-borda-controlo bg-superficie text-texto shadow-sombra-subtil focus:ring-foco min-h-12 w-full border px-3 focus:ring-4 focus:outline-none"
         />
       </label>
       {estado?.erro && (
-        <p role="alert" className="rounded bg-red-50 p-2 text-sm text-red-800">
+        <p role="alert" className="rounded-raio-md bg-perigo text-primaria-texto px-3 py-3 text-sm">
           {estado.erro}
         </p>
       )}
       <button
         disabled={pendente}
-        className="w-full rounded bg-slate-800 p-2 text-white disabled:opacity-50"
+        className="rounded-raio-md bg-primaria text-primaria-texto shadow-sombra-subtil hover:bg-primaria-escura focus:ring-foco min-h-12 w-full px-4 font-semibold transition-colors focus:ring-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
         {pendente ? "A entrar…" : "Entrar"}
       </button>
-      <p className="text-sm">
-        <Link href="/recuperar" className="underline">
+      <p className="text-texto-suave text-center text-sm">
+        <Link
+          href="/recuperar"
+          className="text-primaria-escura inline-flex min-h-11 items-center px-2 font-semibold underline-offset-4 hover:underline"
+        >
           Esqueci-me da palavra-passe
         </Link>
       </p>

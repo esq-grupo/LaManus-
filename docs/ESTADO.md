@@ -23,7 +23,7 @@ O ensaio de restauro passou a falhar no CI (`pg_restore: unrecognized configurat
 
 - **TAREFA-4** — duas propostas de desenho «premium» (maquetas HTML, `docs/tarefas/TAREFA-4.md`). Estado: **fechada**, fundida (aprovado d90456ea65ea756d826ea86a8bb3d99a0626608a). À espera da escolha A/B do cliente.
 - **TAREFA-5** — correcções do PR n.º 4 (Parte A) e base do sistema de desenho (Parte B): **fechada**, fundida (aprovado a63c0ef2f2fb0b326bdb46785105f2666c82ef06).
-- **TAREFA-6** — aplicar a proposta A (escolhida pelo cliente) por ondas 6a–6e (`docs/tarefas/TAREFA-6.md`). Estado: **pode ser enviada ao Manus** (TAREFA-5 fechada); arranca pela onda 6a.
+- **TAREFA-6** — aplicar a proposta A (escolhida pelo cliente) por ondas 6a–6e (`docs/tarefas/TAREFA-6.md`). Estado: Onda 6a implementada no ramo `manus/TAREFA-6a-fundacao-entrada`, a aguardar verificações completas, CI e revisão; não fundida.
 - **TAREFA-7** — página pública da escola (`docs/tarefas/TAREFA-7.md`). Estado: **rascunho**; só segue para o Manus com a TAREFA-5 fechada e o conteúdo do cliente.
 - Plano de desenho, página pública e dados do cliente (enfermagem): `docs/PLANO-DESENHO-E-DADOS.md`.
 
