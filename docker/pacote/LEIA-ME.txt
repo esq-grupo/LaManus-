@@ -1,0 +1,26 @@
+La Manu — pacote de publicação
+Commit: @COMMIT@   Plataforma: Linux x64 (glibc, OpenSSL 3; ex.: Ubuntu 24.04) · Node >= 22 (compilado com @NODE@)
+Sem segredos, sem valores de variáveis, sem dados pessoais. Construído pelo fluxo «Pacote» do GitHub Actions
+(scripts/empacotar.mjs) a partir deste commit; confira o SHA-256 do .tar.gz com o do corpo da release.
+
+CONTEÚDO
+  app/          Aplicação compilada (Next.js "standalone"). Arranque: node server.js
+  manutencao/   Ferramentas de base de dados (NÃO é a aplicação): migrações, primeira conta, verificação de privilégios.
+                Inclui prisma/ (schema e migrações), scripts/, node_modules/ (com o motor de migrações Linux; não precisa de
+                internet) e package.json.
+
+1) APLICAÇÃO — arranque (escuta só em 127.0.0.1:3012; define-se por variáveis de ambiente)
+     cd app
+     NODE_ENV=production PORT=3012 HOSTNAME=127.0.0.1 node server.js
+   Variáveis lidas (só NOMES): NODE_ENV, PORT, HOSTNAME, DATABASE_URL, AUTH_DATABASE_URL, APP_URL,
+   SMTP_HOST, SMTP_PORT, SMTP_SEGURO, SMTP_UTILIZADOR, SMTP_PALAVRA_PASSE, SMTP_REMETENTE.
+   Não há pastas graváveis: corre com a árvore só de leitura e como utilizador sem privilégios.
+   Parar: SIGTERM (termina em ~2 s).
+
+2) BASE DE DADOS — PostgreSQL 16 (não MariaDB). Os utilizadores lamanus_app e lamanus_auth criam-se antes,
+   com docker/db/papeis.sql do repositório (como superutilizador). Migrações (como DONO da base; só com autorização):
+     cd manutencao
+     ADMIN_DATABASE_URL=… npm run db:deploy
+   (equivale a: prisma migrate deploy + privilégios (prisma/grants.sql) + sincronização de papéis/permissões)
+   Depois:  ADMIN_DATABASE_URL=… DATABASE_URL=… AUTH_DATABASE_URL=… npm run verificar:privilegios
+   Primeira conta: ADMIN_DATABASE_URL=… APP_URL=https://<dominio> npm run admin:inicial -- <email> "<Nome>"

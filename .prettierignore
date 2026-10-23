@@ -4,3 +4,4 @@ package-lock.json
 src/generated
 prisma/migrations
 docs
+docker/pacote/manutencao.package-lock.json
